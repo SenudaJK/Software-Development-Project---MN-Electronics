@@ -155,3 +155,4 @@ router.delete('/delete/:jobId/:inventoryId/:batchNo', async (req, res) => {
 });
 
 module.exports = router;
+// end
