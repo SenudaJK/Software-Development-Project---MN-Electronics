@@ -1,0 +1,46 @@
+/* Container styling */
+.job-table-container {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Table header styling */
+  .job-table thead {
+    background-color: #f5f5f5;
+  }
+  
+  .job-table th {
+    font-weight: bold;
+    text-align: left;
+    padding: 10px;
+    color: #333333;
+  }
+  
+  /* Table row styling */
+  .job-table tbody tr:hover {
+    background-color: #f9f9f9;
+    cursor: pointer;
+  }
+  
+  .job-table td {
+    padding: 10px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  /* Image styling */
+  .job-table img {
+    width: 80px;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Typography styling */
+  .job-table-title {
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #333333;
+  }

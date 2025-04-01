@@ -1,0 +1,92 @@
+/* Container styling */
+.customer-table-container {
+  margin: 20px auto;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Table header styling */
+.customer-table th,
+.customer-table td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.customer-table th {
+  background-color: #343a40;
+  color: white;
+}
+
+/* Table row styling */
+.customer-table tbody tr:hover {
+  background-color: #f1f1f1;
+  cursor: pointer;
+}
+
+.customer-table td {
+  padding: 10px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* Search bar styling */
+.customer-search-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.customer-search-bar input {
+  width: 100%;
+  max-width: 300px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Button styling */
+.customer-actions button {
+  margin-left: 10px;
+}
+
+.customer-actions .add-button {
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.customer-actions .add-button:hover {
+  background-color: #1565c0;
+}
+
+.customer-actions .refresh-button {
+  background-color: #e0e0e0;
+  color: #333333;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.customer-actions .refresh-button:hover {
+  background-color: #d6d6d6;
+}
+
+/* Dialog styling */
+.customer-dialog .MuiDialogTitle-root {
+  font-weight: bold;
+}
+
+.customer-dialog .MuiDialogContentText-root {
+  color: #555555;
+}
+
+.customer-table-container h2 {
+  color: #343a40;
+  font-weight: bold;
+}
