@@ -38,13 +38,17 @@ const Login = ({ onLogin }) => {
         }
       });
 
+      console.log('Backend Response:', response.data); // Debugging
+
       if (response.data.success) {
         const { employeeId } = response.data; // Extract employeeId from the response
+        console.log('Extracted Employee ID:', employeeId); // Debugging
         onLogin(employeeId); // Pass the employeeId to App.jsx
       } else {
         setMessage(response.data.message);
       }
     } catch (error) {
+      console.error('Error during login:', error); // Debugging
       setMessage(error.response?.data?.message || 'Error logging in');
     }
   };

@@ -1,13 +1,22 @@
-import React from 'react';
-import { List, ListItem, ListItemIcon, ListItemText, Drawer, Typography, Box } from '@mui/material';
+import React, { useState } from 'react';
+import { List, ListItem, ListItemIcon, ListItemText, Drawer, Typography, Box, Collapse } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import PersonIcon from '@mui/icons-material/Person';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import PeopleIcon from '@mui/icons-material/People';
 import WorkIcon from '@mui/icons-material/Work';
+import ReceiptIcon from '@mui/icons-material/Receipt'; // Invoice icon
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
 import { Link } from 'react-router-dom';
 
 const Sidebar = () => {
+  const [openInvoice, setOpenInvoice] = useState(false); // State to toggle Invoice dropdown
+
+  const handleInvoiceClick = () => {
+    setOpenInvoice(!openInvoice); // Toggle the dropdown
+  };
+
   return (
     <Drawer
       variant="permanent"
@@ -92,6 +101,35 @@ const Sidebar = () => {
           </ListItemIcon>
           <ListItemText primary="My Jobs" />
         </ListItem>
+
+        {/* Invoice Section */}
+        <ListItem button onClick={handleInvoiceClick} sx={{ '&:hover': { backgroundColor: '#334155' } }}>
+          <ListItemIcon sx={{ color: '#ffffff' }}>
+            <ReceiptIcon />
+          </ListItemIcon>
+          <ListItemText primary="Invoice" />
+          {openInvoice ? <ExpandLess sx={{ color: '#ffffff' }} /> : <ExpandMore sx={{ color: '#ffffff' }} />}
+        </ListItem>
+        <Collapse in={openInvoice} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding>
+            <ListItem
+              button
+              component={Link}
+              to="/invoice/advance-payment"
+              sx={{ pl: 4, '&:hover': { backgroundColor: '#334155' } }}
+            >
+              <ListItemText primary="Advanced Payment Invoice" sx={{ color: '#ffffff' }} />
+            </ListItem>
+            <ListItem
+              button
+              component={Link}
+              to="/invoice/full-payment"
+              sx={{ pl: 4, '&:hover': { backgroundColor: '#334155' } }}
+            >
+              <ListItemText primary="Full Payment Invoice" sx={{ color: '#ffffff' }} />
+            </ListItem>
+          </List>
+        </Collapse>
       </List>
     </Drawer>
   );

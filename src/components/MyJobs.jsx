@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Container,
   Typography,
@@ -11,56 +11,61 @@ import {
   TableRow,
   Paper,
   Button,
-} from '@mui/material';
-import axios from 'axios';
+} from "@mui/material";
+import axios from "axios";
 
 const MyJobs = ({ employeeId }) => {
   const [jobs, setJobs] = useState([]);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    console.log("Employee ID in MyJobs:", employeeId); // Debugging
     if (!employeeId) {
-      console.error('Employee ID is undefined'); // Debugging
-      setError('No employee ID provided');
+      setError("No employee ID provided");
       return;
     }
 
     const fetchJobs = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/jobs/employee/${employeeId}`);
+        const response = await axios.get(
+          `http://localhost:5000/api/jobs/employee/${employeeId}`
+        );
         setJobs(response.data);
       } catch (error) {
-        console.error('Error fetching jobs:', error);
-        setError(error.response?.data?.message || 'Error fetching jobs');
+        console.error("Error fetching jobs:", error);
+        setError(error.response?.data?.message || "Error fetching jobs");
       }
     };
 
     fetchJobs();
   }, [employeeId]);
-
   return (
     <Box>
       {/* Fixed Header Section */}
       <Box
         sx={{
-          bgcolor: 'black',
-          color: 'white',
+          bgcolor: "black",
+          color: "white",
           p: 2,
-          position: 'fixed',
+          position: "fixed",
           top: 0,
           left: 0,
-          width: '100%',
+          width: "100%",
           zIndex: 1000,
         }}
       >
-        <Typography variant="h6" sx={{ textAlign: 'left', ml: 2 }}>
+        <Typography variant="h6" sx={{ textAlign: "left", ml: 2 }}>
           MN Electronics
         </Typography>
       </Box>
 
       {/* Main Content */}
       <Container maxWidth="lg" sx={{ mt: 10, mb: 4 }}>
-        <Typography variant="h4" gutterBottom sx={{ mb: 3, fontWeight: 'medium' }}>
+        <Typography
+          variant="h4"
+          gutterBottom
+          sx={{ mb: 3, fontWeight: "medium" }}
+        >
           My Jobs
         </Typography>
 
@@ -102,9 +107,9 @@ const MyJobs = ({ employeeId }) => {
                         variant="contained"
                         size="small"
                         sx={{
-                          bgcolor: 'black',
-                          color: 'white',
-                          '&:hover': { bgcolor: '#333' },
+                          bgcolor: "black",
+                          color: "white",
+                          "&:hover": { bgcolor: "#333" },
                         }}
                       >
                         Update Status

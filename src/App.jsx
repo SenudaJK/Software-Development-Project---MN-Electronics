@@ -18,18 +18,20 @@ import '@fontsource/roboto/700.css'; // Bold weight (if needed)
 import CalculatePartTimeSalary from './components/CalculatePartTimeSalary';
 import ViewInventory from './components/ViewInventory';
 import MyJobs from './components/MyJobs';
+import Invoice from './components/Invoice';
+import FullInvoice from './components/FullInvoice';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [employeeId, setEmployeeId] = useState(null); // Store the logged-in employee's ID
   const navigate = useNavigate();
 
-  const handleLogin = (id) => {
-    console.log('Logged in employee ID:', id); // Debugging
-    setEmployeeId(id);
-    setIsAuthenticated(true);
-    navigate('/myjobs');
-};
+  const handleLogin = (employeeId) => {
+    console.log('Logged in employee ID:', employeeId); // Debugging
+    setEmployeeId(employeeId); // Set the employee ID
+    setIsAuthenticated(true); // Set authentication state
+    navigate('/myjobs'); // Redirect to My Jobs
+  };
 
   return (
     <div style={{ display: 'flex' }}>
@@ -49,6 +51,8 @@ function App() {
           <Route path="/add-inventory" element={<InventoryForm />} />
           <Route path="/register-job" element={<RegisterJobAndCustomer />} />
           <Route path="/jobs" element={<JobTable />} />
+          <Route path="/invoice/advance-payment" element={<Invoice />} />
+          <Route path="/invoice/full-payment" element={<FullInvoice />} />
           <Route path="/myjobs" element={<MyJobs employeeId={employeeId} />} />
         </Routes>
       </div>
