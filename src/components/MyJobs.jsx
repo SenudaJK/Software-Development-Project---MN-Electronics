@@ -16,15 +16,22 @@ import axios from 'axios';
 
 const MyJobs = ({ employeeId }) => {
   const [jobs, setJobs] = useState([]);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // Fetch jobs assigned to the logged-in technician
+    if (!employeeId) {
+      console.error('Employee ID is undefined'); // Debugging
+      setError('No employee ID provided');
+      return;
+    }
+
     const fetchJobs = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/jobs?employeeId=${employeeId}`);
+        const response = await axios.get(`http://localhost:5000/api/jobs/employee/${employeeId}`);
         setJobs(response.data);
       } catch (error) {
         console.error('Error fetching jobs:', error);
+        setError(error.response?.data?.message || 'Error fetching jobs');
       }
     };
 
@@ -57,6 +64,13 @@ const MyJobs = ({ employeeId }) => {
           My Jobs
         </Typography>
 
+        {/* Error Message */}
+        {error && (
+          <Typography color="error" sx={{ mb: 2 }}>
+            {error}
+          </Typography>
+        )}
+
         {/* Jobs Table */}
         <TableContainer component={Paper}>
           <Table>
@@ -64,6 +78,8 @@ const MyJobs = ({ employeeId }) => {
               <TableRow>
                 <TableCell>Job ID</TableCell>
                 <TableCell>Product Name</TableCell>
+                <TableCell>Model</TableCell>
+                <TableCell>Customer Name</TableCell>
                 <TableCell>Repair Description</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Handover Date</TableCell>
@@ -74,11 +90,13 @@ const MyJobs = ({ employeeId }) => {
               {jobs.length > 0 ? (
                 jobs.map((job, index) => (
                   <TableRow key={index}>
-                    <TableCell>{job.jobId}</TableCell>
-                    <TableCell>{job.productName}</TableCell>
-                    <TableCell>{job.repairDescription}</TableCell>
-                    <TableCell>{job.status}</TableCell>
-                    <TableCell>{job.handoverDate}</TableCell>
+                    <TableCell>{job.job_id}</TableCell>
+                    <TableCell>{job.product_name}</TableCell>
+                    <TableCell>{job.model}</TableCell>
+                    <TableCell>{`${job.customer_first_name} ${job.customer_last_name}`}</TableCell>
+                    <TableCell>{job.repair_description}</TableCell>
+                    <TableCell>{job.repair_status}</TableCell>
+                    <TableCell>{job.handover_date}</TableCell>
                     <TableCell>
                       <Button
                         variant="contained"
@@ -96,7 +114,7 @@ const MyJobs = ({ employeeId }) => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={8} align="center">
                     No jobs assigned
                   </TableCell>
                 </TableRow>

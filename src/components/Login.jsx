@@ -39,7 +39,8 @@ const Login = ({ onLogin }) => {
       });
 
       if (response.data.success) {
-        onLogin();
+        const { employeeId } = response.data; // Extract employeeId from the response
+        onLogin(employeeId); // Pass the employeeId to App.jsx
       } else {
         setMessage(response.data.message);
       }

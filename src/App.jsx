@@ -18,27 +18,30 @@ import '@fontsource/roboto/700.css'; // Bold weight (if needed)
 import CalculatePartTimeSalary from './components/CalculatePartTimeSalary';
 import ViewInventory from './components/ViewInventory';
 import MyJobs from './components/MyJobs';
-// import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [employeeId, setEmployeeId] = useState(null); // Store the logged-in employee's ID
   const navigate = useNavigate();
 
-  const handleLogin = () => {
+  const handleLogin = (id) => {
+    console.log('Logged in employee ID:', id); // Debugging
+    setEmployeeId(id);
     setIsAuthenticated(true);
-    navigate('/dashboard');
-  };
+    navigate('/myjobs');
+};
 
   return (
     <div style={{ display: 'flex' }}>
+      {/* Conditionally render Sidebar only when authenticated */}
       {isAuthenticated && <Sidebar />}
-      <div style={{ flexGrow: 1 }}>
+      <div style={{ flexGrow: 1}}>
         <Routes>
           <Route path="/" element={<Login onLogin={handleLogin} />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/employees" element={<EmployeeTable />} />
           <Route path="/customers" element={<CustomerTable />} />
-          <Route path ="/part-time-salary" element={<CalculatePartTimeSalary />} />
+          <Route path="/part-time-salary" element={<CalculatePartTimeSalary />} />
           <Route path="/view-inventory" element={<ViewInventory />} />
           <Route path="/employees/:id" element={<EmployeeDetail />} />
           <Route path="/register-employee" element={<EmployeeRegistrationForm />} />
@@ -46,7 +49,7 @@ function App() {
           <Route path="/add-inventory" element={<InventoryForm />} />
           <Route path="/register-job" element={<RegisterJobAndCustomer />} />
           <Route path="/jobs" element={<JobTable />} />
-          <Route path="/myjobs" element={<MyJobs />} />
+          <Route path="/myjobs" element={<MyJobs employeeId={employeeId} />} />
         </Routes>
       </div>
     </div>
