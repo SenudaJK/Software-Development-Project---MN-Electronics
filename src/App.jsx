@@ -20,6 +20,7 @@ import ViewInventory from './components/ViewInventory';
 import MyJobs from './components/MyJobs';
 import Invoice from './components/Invoice';
 import FullInvoice from './components/FullInvoice';
+import InventoryBatchRegistration from './components/InventoryBatchRegistration';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -53,6 +54,7 @@ function App() {
           <Route path="/jobs" element={<JobTable />} />
           <Route path="/invoice/advance-payment" element={<Invoice />} />
           <Route path="/invoice/full-payment" element={<FullInvoice />} />
+          <Route path="inventory/inventory-batch" element={<InventoryBatchRegistration />} />
           <Route path="/myjobs" element={<MyJobs employeeId={employeeId} />} />
         </Routes>
       </div>

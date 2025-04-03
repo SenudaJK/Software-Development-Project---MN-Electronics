@@ -10,7 +10,7 @@ const Invoice = () => {
         padding: 4,
       }}
     >
-      {/* Header */}
+      {/* Header
       <Box
         sx={{
           backgroundColor: '#000000', // Black header
@@ -22,7 +22,7 @@ const Invoice = () => {
         <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
           MN Electronics
         </Typography>
-      </Box>
+      </Box> */}
 
       {/* Main Content */}
       <Container maxWidth="md">

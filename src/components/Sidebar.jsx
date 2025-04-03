@@ -6,15 +6,21 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import PeopleIcon from '@mui/icons-material/People';
 import WorkIcon from '@mui/icons-material/Work';
 import ReceiptIcon from '@mui/icons-material/Receipt'; // Invoice icon
+import InventoryIcon from '@mui/icons-material/Inventory'; // Inventory icon
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import { Link } from 'react-router-dom';
 
 const Sidebar = () => {
   const [openInvoice, setOpenInvoice] = useState(false); // State to toggle Invoice dropdown
+  const [openInventory, setOpenInventory] = useState(false); // State to toggle Inventory dropdown
 
   const handleInvoiceClick = () => {
-    setOpenInvoice(!openInvoice); // Toggle the dropdown
+    setOpenInvoice(!openInvoice); // Toggle the Invoice dropdown
+  };
+
+  const handleInventoryClick = () => {
+    setOpenInventory(!openInventory); // Toggle the Inventory dropdown
   };
 
   return (
@@ -127,6 +133,35 @@ const Sidebar = () => {
               sx={{ pl: 4, '&:hover': { backgroundColor: '#334155' } }}
             >
               <ListItemText primary="Full Payment Invoice" sx={{ color: '#ffffff' }} />
+            </ListItem>
+          </List>
+        </Collapse>
+
+        {/* Inventory Section */}
+        <ListItem button onClick={handleInventoryClick} sx={{ '&:hover': { backgroundColor: '#334155' } }}>
+          <ListItemIcon sx={{ color: '#ffffff' }}>
+            <InventoryIcon />
+          </ListItemIcon>
+          <ListItemText primary="Inventory" />
+          {openInventory ? <ExpandLess sx={{ color: '#ffffff' }} /> : <ExpandMore sx={{ color: '#ffffff' }} />}
+        </ListItem>
+        <Collapse in={openInventory} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding>
+            <ListItem
+              button
+              component={Link}
+              to="/add-inventory"
+              sx={{ pl: 4, '&:hover': { backgroundColor: '#334155' } }}
+            >
+              <ListItemText primary="Add Inventory" sx={{ color: '#ffffff' }} />
+            </ListItem>
+            <ListItem
+              button
+              component={Link}
+              to="/view-inventory"
+              sx={{ pl: 4, '&:hover': { backgroundColor: '#334155' } }}
+            >
+              <ListItemText primary="View Inventory" sx={{ color: '#ffffff' }} />
             </ListItem>
           </List>
         </Collapse>
