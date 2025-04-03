@@ -1,0 +1,23 @@
+{
+  "development": {
+    "username": "root",
+    "password": "Waybig@!23",
+    "database": "repair_shop_management_3",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "test": {
+    "username": "root",
+    "password": "Waybig@!23",
+    "database": "repair_shop_test",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "production": {
+    "username": "root",
+    "password": "Waybig@!23",
+    "database": "repair_shop",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  }
+}
