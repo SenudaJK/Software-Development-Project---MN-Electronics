@@ -163,6 +163,14 @@ const Sidebar = () => {
             >
               <ListItemText primary="View Inventory" sx={{ color: '#ffffff' }} />
             </ListItem>
+            <ListItem
+              button
+              component={Link}
+              to="/inventory/inventory-batch"
+              sx={{ pl: 4, '&:hover': { backgroundColor: '#334155' } }}
+            >
+              <ListItemText primary="Inventory Batch" sx={{ color: '#ffffff' }} />
+            </ListItem>
           </List>
         </Collapse>
       </List>
