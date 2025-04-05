@@ -21,6 +21,7 @@ import MyJobs from './components/MyJobs';
 import Invoice from './components/Invoice';
 import FullInvoice from './components/FullInvoice';
 import InventoryBatchRegistration from './components/InventoryBatchRegistration';
+import JobUsedInventory from "./components/JobUsedInventory";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
