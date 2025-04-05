@@ -24,19 +24,20 @@ const MyJobs = ({ employeeId }) => {
       setError("No employee ID provided");
       return;
     }
-
+  
     const fetchJobs = async () => {
       try {
         const response = await axios.get(
           `http://localhost:5000/api/jobs/employee/${employeeId}`
         );
+        console.log("Jobs fetched:", response.data); // Debugging
         setJobs(response.data);
       } catch (error) {
         console.error("Error fetching jobs:", error);
         setError(error.response?.data?.message || "Error fetching jobs");
       }
     };
-
+  
     fetchJobs();
   }, [employeeId]);
   return (

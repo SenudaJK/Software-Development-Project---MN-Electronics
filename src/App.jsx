@@ -27,11 +27,11 @@ function App() {
   const [employeeId, setEmployeeId] = useState(null); // Store the logged-in employee's ID
   const navigate = useNavigate();
 
-  const handleLogin = (employeeId) => {
-    console.log('Logged in employee ID:', employeeId); // Debugging
-    setEmployeeId(employeeId); // Set the employee ID
+  const handleLogin = (id) => {
+    console.log("Logged in employee ID:", id); // Debugging
+    setEmployeeId(id); // Set the employee ID
     setIsAuthenticated(true); // Set authentication state
-    navigate('/myjobs'); // Redirect to My Jobs
+    navigate("/myjobs"); // Redirect to My Jobs
   };
 
   return (
