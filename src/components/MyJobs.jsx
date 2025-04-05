@@ -24,7 +24,7 @@ const MyJobs = ({ employeeId }) => {
       setError("No employee ID provided");
       return;
     }
-  
+
     const fetchJobs = async () => {
       try {
         const response = await axios.get(
@@ -37,7 +37,7 @@ const MyJobs = ({ employeeId }) => {
         setError(error.response?.data?.message || "Error fetching jobs");
       }
     };
-  
+
     fetchJobs();
   }, [employeeId]);
   return (
@@ -90,6 +90,7 @@ const MyJobs = ({ employeeId }) => {
                 <TableCell>Status</TableCell>
                 <TableCell>Handover Date</TableCell>
                 <TableCell>Actions</TableCell>
+                <TableCell>Update Used Inventory</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -112,8 +113,11 @@ const MyJobs = ({ employeeId }) => {
                           color: "white",
                           "&:hover": { bgcolor: "#333" },
                         }}
+                        onClick={() =>
+                          navigate(`/job-used-inventory/${job.job_id}`)
+                        } // Navigate to Job Used Inventory page
                       >
-                        Update Status
+                        Update Inventory
                       </Button>
                     </TableCell>
                   </TableRow>
