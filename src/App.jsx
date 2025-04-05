@@ -56,6 +56,7 @@ function App() {
           <Route path="/invoice/full-payment" element={<FullInvoice />} />
           <Route path="inventory/inventory-batch" element={<InventoryBatchRegistration />} />
           <Route path="/myjobs" element={<MyJobs employeeId={employeeId} />} />
+          <Route path="/job-used-inventory/:jobId" element={<JobUsedInventory />} />
         </Routes>
       </div>
     </div>
