@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom"; // Import useNavigate
+import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock } from "lucide-react";
 import axios from "axios";
 
@@ -7,35 +7,31 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
-      // Send login request to the backend
-      const response = await axios.post(
-        "http://localhost:5000/api/employees/login",
-        {
-          email,
-          password,
-        }
-      );
+      const response = await axios.post("http://localhost:5000/api/employees/login", {
+        email,
+        password,
+      });
 
-      // Check if login is successful
       if (response.data.success) {
-        const { id, role, username, fullName } = response.data;
+        const { employeeId, username, fullName, role } = response.data;
 
-        // Store user details in local storage
-        localStorage.setItem(
+        // Store employee data in sessionStorage
+        sessionStorage.setItem(
           "employee",
-          JSON.stringify({ id, role, username, fullName })
+          JSON.stringify({ employeeId, username, fullName, role })
         );
 
-        // Redirect based on role
+        // Redirect to the dashboard or MyJobs page
         if (role === "technician") {
-          navigate("/my-jobs"); // Redirect to MyJobs page for technicians
+          navigate("/myjobs");
         } else {
-          navigate("/dashboard"); // Redirect to dashboard for other roles
+          navigate("/dashboard");
         }
       } else {
         setError(response.data.message || "Login failed.");
@@ -57,17 +53,13 @@ const Login = () => {
     >
       <div className="bg-white/90 backdrop-blur-sm p-8 rounded-xl shadow-2xl w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            MN Electronics
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">MN Electronics</h1>
           <p className="text-gray-600">Employee Portal</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email Address
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <input
@@ -82,9 +74,7 @@ const Login = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <input
