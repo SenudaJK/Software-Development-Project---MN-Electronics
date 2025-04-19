@@ -32,6 +32,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
     { path: '/create-account-customer', icon: <Users />, label: 'Register Customer' },
     { path: '/jobs', icon: <Wrench />, label: 'View Jobs' },
     { path: '/myjobs', icon: <Wrench />, label: 'My Jobs' },
+    { path: '/warranty-jobs', icon: <Wrench />, label: 'Warranty Jobs' },
+    { path: '/my-salary', icon: <DollarSign />, label: 'My Salary' },
   ];
 
   const invoiceSubItems = [

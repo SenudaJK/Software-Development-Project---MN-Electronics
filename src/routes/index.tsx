@@ -16,6 +16,11 @@ import AdvanceInvoice from "../pages/AdvanceInvoice";
 import FullInvoice from "../pages/FullInvoice";
 import MyJobs from "../pages/MyJobs";
 import InventoryBatch from "../pages/InventoryBatch";
+import JobUsedInventory from "../pages/JobUsedInventory";
+import JobDetails from "../pages/JobDetails";
+import EditJob from "../pages/EditJob";
+import WarrantyJobs from "../pages/WarrantyJobs";
+import MySalary from "../pages/MySalary";
 
 const AppRoutes = () => {
   return (
@@ -36,6 +41,11 @@ const AppRoutes = () => {
       <Route path="invoice/full-payment" element={<FullInvoice />} />
       <Route path="/inventory-batch/:inventoryId" element={<InventoryBatch />} />
       <Route path="/myjobs" element={<MyJobs />} />
+      <Route path="/job-used-inventory/:jobId" element={<JobUsedInventory />} />
+      <Route path="/jobs" element={<JobDetails/>} />
+      <Route path="/edit-job/:jobId" element={<EditJob />} />
+      <Route path="/warranty-jobs" element={<WarrantyJobs />} />
+      <Route path="/my-salary" element={<MySalary />} />
       {/* Add more routes as needed */}
     </Routes>
   );

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const AdvanceInvoice = () => {
   const [jobId, setJobId] = useState('');
@@ -7,12 +8,37 @@ const AdvanceInvoice = () => {
   const [advanceAmount, setAdvanceAmount] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const navigate = useNavigate();
 
-  // Retrieve ownerId from localStorage
-  const ownerId = JSON.parse(localStorage.getItem('employee') || '{}').id;
+  // Get employee data from localStorage
+  const employeeData = JSON.parse(localStorage.getItem('employee') || '{}');
+  const { id: ownerId, role } = employeeData;
+
+  // Check authorization on component mount
+  useEffect(() => {
+    if (!employeeData || !employeeData.id) {
+      // Not logged in
+      setError('You must be logged in to create invoices');
+      setIsAuthorized(false);
+      return;
+    }
+
+    if (role !== 'owner') {
+      // Not owner
+      setError('Only owners can create invoices');
+      setIsAuthorized(false);
+      return;
+    }
+
+    // User is logged in and is an owner
+    setIsAuthorized(true);
+  }, [employeeData, role]);
 
   // Fetch job details by Job ID
   const fetchJobDetails = async () => {
+    if (!isAuthorized) return;
+
     try {
       const response = await axios.get(`http://localhost:5000/api/jobs/job-details/${jobId}`);
       setJobDetails(response.data);
@@ -25,11 +51,26 @@ const AdvanceInvoice = () => {
 
   // Add advance amount to the invoice
   const handleAddAdvance = async () => {
+    if (!isAuthorized) {
+      setError('You are not authorized to create invoices');
+      return;
+    }
+    
+    if (!jobDetails) {
+      setError('Please fetch job details first');
+      return;
+    }
+    
+    if (!advanceAmount || isNaN(Number(advanceAmount))) {
+      setError('Please enter a valid advance amount');
+      return;
+    }
+
     try {
       const response = await axios.post('http://localhost:5000/api/invoices/add-advance', {
         jobId,
         advanceAmount,
-        ownerId, // Include ownerId in the request body
+        ownerId,
       });
       setMessage(response.data.message);
       setError('');
@@ -38,6 +79,43 @@ const AdvanceInvoice = () => {
       setError(err.response?.data?.message || 'Error adding advance amount');
     }
   };
+
+  // Redirect to login if not logged in
+  const redirectToLogin = () => {
+    navigate('/login');
+  };
+
+  // Show unauthorized message if not owner
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6 flex justify-center items-center">
+        <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-8 max-w-md w-full">
+          <h2 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">
+            Unauthorized Access
+          </h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-6">
+            {!employeeData || !employeeData.id
+              ? 'You must be logged in to create invoices.'
+              : 'Only owners can create invoices.'}
+          </p>
+          {(!employeeData || !employeeData.id) && (
+            <button
+              onClick={redirectToLogin}
+              className="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300"
+            >
+              Go to Login
+            </button>
+          )}
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="w-full mt-3 py-2 px-4 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring focus:ring-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6">
@@ -159,15 +237,10 @@ const AdvanceInvoice = () => {
           </button>
         </div>
 
-        {/* Success/Error Message */}
+        {/* Success Message */}
         {message && (
           <p className="text-sm text-green-500 mt-4">
             {message}
-          </p>
-        )}
-        {error && (
-          <p className="text-sm text-red-500 mt-4">
-            {error}
           </p>
         )}
       </div>

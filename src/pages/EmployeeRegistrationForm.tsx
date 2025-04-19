@@ -10,6 +10,7 @@ const EmployeeRegistrationForm = () => {
     nic: "",
     dateOfBirth: "",
     role: "",
+    employmentType: "", // Added employment type
     username: "",
     password: "",
     confirmPassword: "",
@@ -62,6 +63,7 @@ const EmployeeRegistrationForm = () => {
         nic: "",
         dateOfBirth: "",
         role: "",
+        employmentType: "", // Reset employment type
         username: "",
         password: "",
         confirmPassword: "",
@@ -188,6 +190,37 @@ const EmployeeRegistrationForm = () => {
               <option value="owner">Owner</option>
               <option value="technician">Technician</option>
             </select>
+          </div>
+
+          {/* Employment Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600">
+              Employment Type
+            </label>
+            <div className="flex items-center gap-4 mt-2">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="employmentType"
+                  value="Full-Time"
+                  checked={employee.employmentType === "Full-Time"}
+                  onChange={handleChange}
+                  className="mr-2"
+                />
+                <span className="text-gray-800">Full-Time</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="employmentType"
+                  value="Part-Time"
+                  checked={employee.employmentType === "Part-Time"}
+                  onChange={handleChange}
+                  className="mr-2"
+                />
+                <span className="text-gray-800">Part-Time</span>
+              </label>
+            </div>
           </div>
 
           {/* Username */}

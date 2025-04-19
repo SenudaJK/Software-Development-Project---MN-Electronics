@@ -16,6 +16,7 @@ const MyJobs: React.FC = () => {
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState(""); // State for success message
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -57,6 +58,14 @@ const MyJobs: React.FC = () => {
           job.job_id === jobId ? { ...job, repair_status: newStatus } : job
         )
       );
+
+      // Set success message
+      setSuccessMessage("Job status updated successfully!");
+
+      // Clear the success message after 3 seconds
+      setTimeout(() => {
+        setSuccessMessage("");
+      }, 3000);
     } catch (error) {
       console.error("Error updating job status:", error);
       setError("Failed to update job status. Please try again.");
@@ -70,6 +79,14 @@ const MyJobs: React.FC = () => {
           My Jobs
         </h2>
 
+        {/* Success Message */}
+        {successMessage && (
+          <div className="bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 p-4 rounded mb-4">
+            {successMessage}
+          </div>
+        )}
+
+        {/* Error Message */}
         {error && (
           <div className="bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 p-4 rounded mb-4">
             {error}
@@ -99,7 +116,7 @@ const MyJobs: React.FC = () => {
                   Status
                 </th>
                 <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 dark:text-gray-300">
-                  Recieved Date
+                  Received Date
                 </th>
                 <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 dark:text-gray-300">
                   Actions
@@ -137,8 +154,9 @@ const MyJobs: React.FC = () => {
                         className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded px-2 py-1"
                       >
                         <option value="Pending">Pending</option>
+                        <option value="Cannot Repair">Cannot Repair</option>
                         <option value="In Progress">In Progress</option>
-                        <option value="Complete">Completed</option>
+                        <option value="Completed">Completed</option>
                       </select>
                     </td>
                     <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">
@@ -146,8 +164,16 @@ const MyJobs: React.FC = () => {
                     </td>
                     <td className="px-4 py-2">
                       <button
-                        className="bg-blue-600 dark:bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition"
-                        onClick={() => navigate(`/job-used-inventory/${job.job_id}`)}
+                        className={`px-4 py-2 rounded transition ${
+                          job.repair_status === "In Progress"
+                            ? "bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600"
+                            : "bg-gray-400 dark:bg-gray-600 text-gray-200 cursor-not-allowed"
+                        }`}
+                        onClick={() =>
+                          job.repair_status === "In Progress" &&
+                          navigate(`/job-used-inventory/${job.job_id}`)
+                        }
+                        disabled={job.repair_status !== "In Progress"} // Disable button if not "In Progress"
                       >
                         Update Inventory
                       </button>

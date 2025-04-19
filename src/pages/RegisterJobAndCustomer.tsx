@@ -20,23 +20,31 @@ const RegisterJobAndCustomer = () => {
     productName: "",
     model: "",
     modelNumber: "",
-    productImage: null as File | null,
+    productImage: null as string | null, // Update type to accept string (Cloudinary URL)
   });
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false); // State for upload status
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [phoneError, setPhoneError] = useState(""); // New state for phone number validation
   const [customerSearch, setCustomerSearch] = useState(""); // State for customer search input
-  const [productSearch, setProductSearch] = useState(""); // State for product search input
+  const [productSearch, setProductSearch] = useState(""); // State for general product search
+  const [productNameSearch, setProductNameSearch] = useState(""); // State for product name search
+  const [modelSearch, setModelSearch] = useState(""); // State for model search
+  const [searchType, setSearchType] = useState<"combined" | "general">("general"); // Search type toggle
   const [isCustomerFound, setIsCustomerFound] = useState(false); // Tracks if customer exists
   const [isProductFound, setIsProductFound] = useState(false); // Tracks if product exists
-  const [employees, setEmployees] = useState<{ id: number; firstName: string; lastName: string }[]>([]);
+  const [employees, setEmployees] = useState<
+    { id: number; firstName: string; lastName: string }[]
+  >([]);
 
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/employees/all");
+        const response = await axios.get(
+          "http://localhost:5000/api/employees/all"
+        );
         setEmployees(response.data); // Assuming the backend returns an array of employees
       } catch (err) {
         console.error("Error fetching employees:", err);
@@ -76,30 +84,79 @@ const RegisterJobAndCustomer = () => {
 
   const handleProductSearch = async () => {
     try {
-      const response = await axios.get(
-        `http://localhost:5000/api/products?search=${productSearch}`
-      );
+      let url = "http://localhost:5000/api/products?";
+      let params = new URLSearchParams();
+      
+      if (searchType === "combined") {
+        // Use specific product_name and/or model search
+        if (productNameSearch) {
+          params.append("product_name", productNameSearch);
+        }
+        
+        if (modelSearch) {
+          params.append("model", modelSearch);
+        }
+        
+        if (!productNameSearch && !modelSearch) {
+          setError("Please enter a product name and/or model to search.");
+          return;
+        }
+      } else {
+        // Use general search
+        if (!productSearch.trim()) {
+          setError("Please enter a search term.");
+          return;
+        }
+        params.append("search", productSearch);
+      }
+      
+      const response = await axios.get(`http://localhost:5000/api/products?${params}`);
+      console.log("Product search response:", response.data);
+      
       if (response.data.length > 0) {
         const productData = response.data[0];
+        console.log("Selected product data:", productData);
+        console.log("Product image URL:", productData.product_image);
+        
         setProduct({
           productName: productData.product_name,
           model: productData.model,
-          modelNumber: productData.model_number,
-          productImage: null,
+          modelNumber: productData.model_number || "",
+          productImage: productData.product_image || null,
         });
-        setImagePreview(productData.product_image || null);
+        
+        // Set the image preview to show the Cloudinary image
+        if (productData.product_image) {
+          console.log("Setting image preview to:", productData.product_image);
+          
+          // Check if it's a valid URL
+          try {
+            new URL(productData.product_image); // This will throw an error if invalid
+            setImagePreview(productData.product_image);
+          } catch (e) {
+            console.error("Invalid image URL:", productData.product_image);
+            setImagePreview(null);
+          }
+        } else {
+          console.log("No product image found, clearing preview");
+          setImagePreview(null);
+        }
+        
         setIsProductFound(true); // Mark product as found
         setError("");
       } else {
         setIsProductFound(false); // Mark product as not found
-        setError("No product found with the given search term.");
+        setError("No product found with the given search criteria.");
+        setImagePreview(null); // Clear image preview
       }
     } catch (err: any) {
+      console.error("Product search error:", err);
       setIsProductFound(false); // Mark product as not found
       setError(
         err.response?.data?.error ||
           "An error occurred while searching for products."
       );
+      setImagePreview(null); // Clear image preview
     }
   };
 
@@ -113,7 +170,7 @@ const RegisterJobAndCustomer = () => {
         /^07\d{8}$/.test(phone)
       );
 
-      if (!isValid) {
+      if (!isValid && value !== "") {
         setPhoneError(
           'Phone numbers must be valid and start with "07" followed by 8 digits.'
         );
@@ -148,14 +205,76 @@ const RegisterJobAndCustomer = () => {
     }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setProduct((prev) => ({
-        ...prev,
-        productImage: file,
-      }));
-      setImagePreview(URL.createObjectURL(file));
+      console.log("Selected File:", file); // Debug log
+
+      // Validate file size and format
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB limit
+        setError("Image size must be less than 5MB.");
+        return;
+      }
+
+      if (!["image/jpeg", "image/png"].includes(file.type)) {
+        setError("Only JPEG and PNG formats are allowed.");
+        return;
+      }
+
+      // Set local preview first for better UX
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target && e.target.result) {
+          setImagePreview(e.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+
+      setIsUploading(true); // Start loading
+
+      try {
+        const formData = new FormData();
+        formData.append("image", file);
+
+        console.log("Uploading image to backend..."); // Debug log
+        const response = await axios.post(
+          "http://localhost:5000/api/upload",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+
+        // Check the response structure
+        console.log("Upload response:", response.data); // Debug log
+        
+        // Get the image URL from the response
+        const imageUrl = response.data.imageUrl;
+        console.log("Uploaded Image URL:", imageUrl); // Debug log
+
+        if (imageUrl) {
+          // Update product state with the Cloudinary URL
+          setProduct((prev) => ({
+            ...prev,
+            productImage: imageUrl,
+          }));
+          
+          // Update image preview with the Cloudinary URL
+          setImagePreview(imageUrl);
+          setError(""); // Clear any previous errors
+        } else {
+          throw new Error("No image URL received from server");
+        }
+        
+        setIsUploading(false); // Stop loading
+      } catch (error: any) {
+        console.error("Error uploading image:", error); // Debug log
+        setError("Failed to upload image. Please try again.");
+        setIsUploading(false); // Stop loading
+      }
     }
   };
 
@@ -194,11 +313,19 @@ const RegisterJobAndCustomer = () => {
 
       // If product is found via search, use the existing productID
       if (isProductFound) {
-        const response = await axios.get(
-          `http://localhost:5000/api/products?search=${productSearch}`
-        );
+        let url = "http://localhost:5000/api/products?";
+        let params = new URLSearchParams();
+        
+        if (searchType === "combined") {
+          if (productNameSearch) params.append("product_name", productNameSearch);
+          if (modelSearch) params.append("model", modelSearch);
+        } else {
+          params.append("search", productSearch);
+        }
+        
+        const response = await axios.get(`http://localhost:5000/api/products?${params}`);
         const productData = response.data[0];
-        productID = productData.id; // Assuming the backend returns the product ID
+        productID = productData.product_id; // Corrected field name
         formData.append("product_name", productData.product_name); // Include product_name
       } else {
         // Append product data if not found via search
@@ -206,7 +333,8 @@ const RegisterJobAndCustomer = () => {
         formData.append("model", product.model);
         formData.append("model_no", product.modelNumber);
         if (product.productImage) {
-          formData.append("product_image", product.productImage);
+          formData.append("product_image", product.productImage); // Cloudinary URL
+          console.log("Sending Cloudinary URL:", product.productImage); // Debug log
         }
       }
 
@@ -222,7 +350,7 @@ const RegisterJobAndCustomer = () => {
 
       // Debugging: Log the FormData
       for (let [key, value] of formData.entries()) {
-        console.log(`${key}: ${value}`);
+        console.log(`${key}: ${value}`); // Debug log
       }
 
       const response = await axios.post(
@@ -245,7 +373,7 @@ const RegisterJobAndCustomer = () => {
       });
       setJob({
         repairDescription: "",
-        repairStatus: "",
+        repairStatus: "Pending",
         handoverDate: "",
         employeeID: "",
       });
@@ -258,8 +386,13 @@ const RegisterJobAndCustomer = () => {
       setImagePreview(null);
       setIsCustomerFound(false); // Reset customer found flag
       setIsProductFound(false); // Reset product found flag
+      setCustomerSearch(""); // Clear search fields
+      setProductSearch("");
+      setProductNameSearch("");
+      setModelSearch("");
+      setSearchType("general");
     } catch (err: any) {
-      console.error(err); // Log the error for debugging
+      console.error("Form submission error:", err); // Debug log
       setMessage("");
       setError(err.response?.data?.error || "An unexpected error occurred");
     }
@@ -366,28 +499,72 @@ const RegisterJobAndCustomer = () => {
           <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">
             Product and Job Details
           </h3>
-          {/* Search Bar for Product */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">
-              Search Exisisting Product
+          
+          {/* Enhanced Search Bar for Product */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
+              Search Existing Product
             </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={productSearch}
-                onChange={(e) => setProductSearch(e.target.value)}
-                className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-                placeholder="Search by name, model, or model number"
-              />
-              <button
-                type="button"
-                onClick={handleProductSearch}
-                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+            
+            <div className="flex gap-2 mb-3">
+              <select
+                value={searchType}
+                onChange={(e) => setSearchType(e.target.value as "combined" | "general")}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
               >
-                Search
-              </button>
+                <option value="general">General Search</option>
+                <option value="combined">Advanced Search</option>
+              </select>
             </div>
+            
+            {searchType === "general" ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                  placeholder="Search by name, model, or model number"
+                />
+                <button
+                  type="button"
+                  onClick={handleProductSearch}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                >
+                  Search
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={productNameSearch}
+                    onChange={(e) => setProductNameSearch(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                    placeholder="Product name"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={modelSearch}
+                    onChange={(e) => setModelSearch(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                    placeholder="Model"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleProductSearch}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                >
+                  Search
+                </button>
+              </div>
+            )}
           </div>
+          
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">
               Product Name
@@ -450,7 +627,6 @@ const RegisterJobAndCustomer = () => {
               onChange={handleJobChange}
               className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
             >
-              <option value="">Select Status</option>
               <option value="Pending">Pending</option>
               <option value="In Progress">In Progress</option>
               <option value="Completed">Completed</option>
@@ -497,6 +673,13 @@ const RegisterJobAndCustomer = () => {
                     src={imagePreview}
                     alt="Product Preview"
                     className="w-full h-full object-cover"
+                    onLoad={() => console.log("Image loaded successfully")} // Debug
+                    onError={(e) => {
+                      console.error("Image load error:", e); // Debug
+                      // Fallback image on error
+                      (e.target as HTMLImageElement).onerror = null; // Prevent infinite loop
+                      (e.target as HTMLImageElement).src = "https://via.placeholder.com/150?text=No+Image";
+                    }}
                   />
                 ) : (
                   <span className="text-gray-400 dark:text-gray-500">
@@ -504,10 +687,29 @@ const RegisterJobAndCustomer = () => {
                   </span>
                 )}
               </div>
-              <label className="bg-blue-500 text-white px-4 py-2 rounded-md cursor-pointer hover:bg-blue-600">
-                Upload Image
-                <input type="file" hidden onChange={handleImageChange} />
-              </label>
+              <div className="flex flex-col gap-2">
+                <label className={`${isUploading ? 'bg-gray-500' : 'bg-blue-500'} text-white px-4 py-2 rounded-md cursor-pointer hover:bg-blue-600 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  {isUploading ? 'Uploading...' : 'Upload Image'}
+                  <input 
+                    type="file" 
+                    hidden 
+                    onChange={handleImageChange} 
+                    disabled={isUploading}
+                  />
+                </label>
+                {imagePreview && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImagePreview(null);
+                      setProduct(prev => ({ ...prev, productImage: null }));
+                    }}
+                    className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                  >
+                    Remove Image
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -518,6 +720,37 @@ const RegisterJobAndCustomer = () => {
         <button
           type="button"
           className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+          onClick={() => {
+            // Reset form
+            setCustomer({
+              firstName: "",
+              lastName: "",
+              email: "",
+              phoneNumbers: "",
+            });
+            setJob({
+              repairDescription: "",
+              repairStatus: "Pending",
+              handoverDate: "",
+              employeeID: "",
+            });
+            setProduct({
+              productName: "",
+              model: "",
+              modelNumber: "",
+              productImage: null,
+            });
+            setImagePreview(null);
+            setIsCustomerFound(false);
+            setIsProductFound(false);
+            setCustomerSearch("");
+            setProductSearch("");
+            setProductNameSearch("");
+            setModelSearch("");
+            setSearchType("general");
+            setError("");
+            setMessage("");
+          }}
         >
           Cancel
         </button>
@@ -525,6 +758,7 @@ const RegisterJobAndCustomer = () => {
           type="submit"
           className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
           onClick={handleSubmit}
+          disabled={isUploading}
         >
           Register
         </button>
