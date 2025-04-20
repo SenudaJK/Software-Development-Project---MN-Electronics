@@ -7,29 +7,33 @@ const MySalary = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Replace this with the logged-in employee's ID
-  const employeeId = 1; // Example: Replace with actual logged-in employee ID
-
   useEffect(() => {
-    fetchSalaryDetails();
-  }, []);
+    const fetchEmployeeSalary = async () => {
+      // Retrieve the logged-in employee's ID from sessionStorage
+      const employeeData = JSON.parse(sessionStorage.getItem("employee") || "{}");
 
-  const fetchSalaryDetails = async () => {
-    setIsLoading(true);
-    setError("");
-    try {
-      const response = await axios.get(
-        `http://localhost:5000/api/salary/salary/${employeeId}`
-      );
-      setSalaryDetails(response.data.salaryDetails);
-      setTotalSalary(response.data.totalSalary);
-    } catch (err: any) {
-      console.error("Error fetching salary details:", err);
-      setError(err.response?.data?.message || "Failed to fetch salary details");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      if (!employeeData || !employeeData.employeeId) {
+        setError("Employee ID not found. Please log in again.");
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const response = await axios.get(
+          `http://localhost:5000/api/salary/salary/${employeeData.employeeId}`
+        );
+        setSalaryDetails(response.data.salaryDetails);
+        setTotalSalary(parseFloat(response.data.totalSalary)); // Convert totalSalary to a number
+      } catch (err: any) {
+        console.error("Error fetching salary details:", err);
+        setError(err.response?.data?.message || "Failed to fetch salary details");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEmployeeSalary();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6">
@@ -104,16 +108,16 @@ const MySalary = () => {
                       {new Date(salary.Payment_Date).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-2 text-right text-gray-800 dark:text-gray-200">
-                      Rs. {parseFloat(salary.Overtime_Pay).toFixed(2)}
+                      Rs. {parseFloat(salary.Overtime_Pay || 0).toFixed(2)}
                     </td>
                     <td className="px-4 py-2 text-right text-gray-800 dark:text-gray-200">
-                      Rs. {parseFloat(salary.Bonus).toFixed(2)}
+                      Rs. {parseFloat(salary.Bonus || 0).toFixed(2)}
                     </td>
                     <td className="px-4 py-2 text-right text-gray-800 dark:text-gray-200">
-                      Rs. {parseFloat(salary.Deductions).toFixed(2)}
+                      Rs. {parseFloat(salary.Deductions || 0).toFixed(2)}
                     </td>
                     <td className="px-4 py-2 text-right text-gray-800 dark:text-gray-200">
-                      Rs. {parseFloat(salary.Total_Salary).toFixed(2)}
+                      Rs. {parseFloat(salary.Total_Salary || 0).toFixed(2)}
                     </td>
                   </tr>
                 ))}
