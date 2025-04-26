@@ -19,10 +19,22 @@ const JobDetails: React.FC = () => {
     handover_date: string;
   }
 
+  const jobStatuses = [
+    "Booking Pending",
+    "Booking Approved",
+    "Booking Cancelled",
+    "Pending",
+    "Cannot Repair",
+    "In Progress",
+    "Completed",
+    "Paid",
+  ];
+
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState(""); // For filtering by status
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -47,28 +59,31 @@ const JobDetails: React.FC = () => {
     fetchJobs();
   }, []);
 
-  // Filter jobs when search term changes
+  // Filter jobs when search term or selected status changes
   useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setFilteredJobs(jobs);
-      return;
+    let results = jobs;
+
+    if (searchTerm.trim() !== "") {
+      const lowerCaseSearchTerm = searchTerm.toLowerCase();
+      results = results.filter((job) => {
+        const customerName = `${job.customer_first_name} ${job.customer_last_name}`.toLowerCase();
+        const productName = job.product_name.toLowerCase();
+        const description = job.repair_description.toLowerCase();
+
+        return (
+          customerName.includes(lowerCaseSearchTerm) ||
+          productName.includes(lowerCaseSearchTerm) ||
+          description.includes(lowerCaseSearchTerm)
+        );
+      });
     }
 
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    const results = jobs.filter((job) => {
-      const customerName = `${job.customer_first_name} ${job.customer_last_name}`.toLowerCase();
-      const productName = job.product_name.toLowerCase();
-      const description = job.repair_description.toLowerCase();
-
-      return (
-        customerName.includes(lowerCaseSearchTerm) ||
-        productName.includes(lowerCaseSearchTerm) ||
-        description.includes(lowerCaseSearchTerm)
-      );
-    });
+    if (selectedStatus) {
+      results = results.filter((job) => job.repair_status === selectedStatus);
+    }
 
     setFilteredJobs(results);
-  }, [searchTerm, jobs]);
+  }, [searchTerm, selectedStatus, jobs]);
 
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,6 +132,20 @@ const JobDetails: React.FC = () => {
               </button>
             )}
           </div>
+
+          {/* Status Filter Dropdown */}
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="block w-full md:w-auto px-4 py-2 border border-gray-300 rounded-md bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">Filter by Status</option>
+            {jobStatuses.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Search Results Count */}
