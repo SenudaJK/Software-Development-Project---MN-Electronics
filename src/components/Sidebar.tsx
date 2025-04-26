@@ -39,12 +39,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
   const invoiceSubItems = [
     { path: '/invoice/advance-payment', label: 'Advanced Payment Invoice' },
     { path: '/invoice/full-payment', label: 'Full Payment Invoice' },
+    { path: '/view-invoice', label: 'View Invoices' },
+    { path: '/view-advance-invoice', label: 'View Advance Invoices' },
   ];
 
   const inventorySubItems = [
     { path: '/add-inventory', label: 'Add Inventory' },
     { path: '/inventory/view-inventory', label: 'View Inventory' },
     { path: '/inventory/inventory-batch', label: 'Inventory Batch' },
+    { path: 'purchase-items', label: 'Purchase Items' },
   ];
 
   return (

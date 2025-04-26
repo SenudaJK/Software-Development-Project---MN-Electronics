@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const FullInvoice = () => {
   const [jobId, setJobId] = useState('');
@@ -15,8 +17,8 @@ const FullInvoice = () => {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [warrantyEligible, setWarrantyEligible] = useState<boolean | null>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const navigate = useNavigate();
-
   // Get employee data from localStorage
   const employeeData = JSON.parse(localStorage.getItem('employee') || '{}');
   const { id: ownerId, role } = employeeData;
@@ -155,6 +157,30 @@ const FullInvoice = () => {
     }
 
     setLabourCost(value);
+  };
+
+  // Function to generate PDF
+  const generatePDF = async () => {
+    const invoiceElement = document.getElementById('invoice-section');
+    if (!invoiceElement) {
+      setError('Invoice section not found');
+      return;
+    }
+
+    console.log(invoiceElement.innerHTML); // Debug: Check if the content is present
+    try {
+      const canvas = await html2canvas(invoiceElement);
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Invoice_${jobId}.pdf`);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      setError('Failed to generate PDF. Please try again.');
+    }
   };
 
   // Redirect to login if not authenticated
@@ -431,6 +457,14 @@ const FullInvoice = () => {
           </div>
         )}
 
+        {/* Invoice Section */}
+        {jobDetails && (
+          <div id="invoice-section" className="mb-6">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Invoice Details</h2>
+            {/* Add your invoice details here */}
+          </div>
+        )}
+
         {/* Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 mt-6">
           <button
@@ -477,6 +511,22 @@ const FullInvoice = () => {
               "Create Invoice"
             )}
           </button>
+
+          <button
+            onClick={generatePDF}
+            disabled={isGeneratingPDF}
+            className={`w-full sm:w-auto px-4 py-2 text-white rounded-md focus:outline-none focus:ring ${
+              isGeneratingPDF ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 focus:ring-blue-300'
+            }`}
+          ></button>
+          {jobDetails && (
+            <button
+              onClick={generatePDF}
+              className="w-full sm:w-auto px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring focus:ring-red-300"
+            >
+              Generate PDF
+            </button>
+          )}
         </div>
       </div>
     </div>

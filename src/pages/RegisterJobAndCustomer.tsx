@@ -1,5 +1,21 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import {
+  User,
+  Package,
+  Search,
+  Upload,
+  Calendar,
+  Smartphone,
+  Mail,
+  X,
+  RefreshCw,
+  Check,
+  Clock,
+  AlertCircle,
+  Info,
+  CheckCircle,
+} from "lucide-react";
 
 const RegisterJobAndCustomer = () => {
   const [customer, setCustomer] = useState({
@@ -38,16 +54,21 @@ const RegisterJobAndCustomer = () => {
   const [employees, setEmployees] = useState<
     { id: number; firstName: string; lastName: string }[]
   >([]);
-
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
+        setIsLoading(true);
         const response = await axios.get(
           "http://localhost:5000/api/employees/all"
         );
         setEmployees(response.data); // Assuming the backend returns an array of employees
       } catch (err) {
         console.error("Error fetching employees:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -55,6 +76,12 @@ const RegisterJobAndCustomer = () => {
   }, []);
 
   const handleCustomerSearch = async () => {
+    if (!customerSearch.trim()) {
+      setError("Please enter a search term for customer");
+      return;
+    }
+    
+    setIsLoading(true);
     try {
       const response = await axios.get(
         `http://localhost:5000/api/customers?search=${customerSearch}`
@@ -69,6 +96,7 @@ const RegisterJobAndCustomer = () => {
         });
         setIsCustomerFound(true); // Mark customer as found
         setError("");
+        setMessage("Customer found successfully!");
       } else {
         setIsCustomerFound(false); // Mark customer as not found
         setError("No customer found with the given search term.");
@@ -79,10 +107,13 @@ const RegisterJobAndCustomer = () => {
         err.response?.data?.error ||
           "An error occurred while searching for customers."
       );
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleProductSearch = async () => {
+    setIsLoading(true);
     try {
       let url = "http://localhost:5000/api/products?";
       let params = new URLSearchParams();
@@ -99,12 +130,14 @@ const RegisterJobAndCustomer = () => {
         
         if (!productNameSearch && !modelSearch) {
           setError("Please enter a product name and/or model to search.");
+          setIsLoading(false);
           return;
         }
       } else {
         // Use general search
         if (!productSearch.trim()) {
           setError("Please enter a search term.");
+          setIsLoading(false);
           return;
         }
         params.append("search", productSearch);
@@ -144,6 +177,7 @@ const RegisterJobAndCustomer = () => {
         
         setIsProductFound(true); // Mark product as found
         setError("");
+        setMessage("Product found successfully!");
       } else {
         setIsProductFound(false); // Mark product as not found
         setError("No product found with the given search criteria.");
@@ -157,6 +191,8 @@ const RegisterJobAndCustomer = () => {
           "An error occurred while searching for products."
       );
       setImagePreview(null); // Clear image preview
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -278,6 +314,38 @@ const RegisterJobAndCustomer = () => {
     }
   };
 
+  const resetForm = () => {
+    // Reset form
+    setCustomer({
+      firstName: "",
+      lastName: "",
+      email: "",
+      phoneNumbers: "",
+    });
+    setJob({
+      repairDescription: "",
+      repairStatus: "Pending",
+      handoverDate: "",
+      employeeID: "",
+    });
+    setProduct({
+      productName: "",
+      model: "",
+      modelNumber: "",
+      productImage: null,
+    });
+    setImagePreview(null);
+    setIsCustomerFound(false);
+    setIsProductFound(false);
+    setCustomerSearch("");
+    setProductSearch("");
+    setProductNameSearch("");
+    setModelSearch("");
+    setSearchType("general");
+    setError("");
+    setMessage("");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -286,6 +354,7 @@ const RegisterJobAndCustomer = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const formData = new FormData();
 
@@ -365,416 +434,631 @@ const RegisterJobAndCustomer = () => {
 
       setMessage(response.data.message);
       setError("");
-      setCustomer({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phoneNumbers: "",
-      });
-      setJob({
-        repairDescription: "",
-        repairStatus: "Pending",
-        handoverDate: "",
-        employeeID: "",
-      });
-      setProduct({
-        productName: "",
-        model: "",
-        modelNumber: "",
-        productImage: null,
-      });
-      setImagePreview(null);
-      setIsCustomerFound(false); // Reset customer found flag
-      setIsProductFound(false); // Reset product found flag
-      setCustomerSearch(""); // Clear search fields
-      setProductSearch("");
-      setProductNameSearch("");
-      setModelSearch("");
-      setSearchType("general");
+      resetForm();
     } catch (err: any) {
       console.error("Form submission error:", err); // Debug log
       setMessage("");
       setError(err.response?.data?.error || "An unexpected error occurred");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="container mx-auto p-6 bg-gray-100 dark:bg-gray-900 min-h-screen">
-      <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-6">
-        Register a Customer and New Job
-      </h2>
-
-      <form
-        onSubmit={handleSubmit}
-        className="grid grid-cols-1 lg:grid-cols-2 gap-8"
-      >
-        {/* Customer Information Section */}
-        <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
-          <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">
-            Customer Information
-          </h3>
-          {/* Search Bar for Customer */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">
-              Search Existing Customer
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={customerSearch}
-                onChange={(e) => setCustomerSearch(e.target.value)}
-                className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-                placeholder="Search by name, email, or phone"
-              />
-              <button
-                type="button"
-                onClick={handleCustomerSearch}
-                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-              >
-                Search
-              </button>
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Page Header */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
+                New Repair Registration
+              </h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">
+                Register a new customer and job in one place
+              </p>
             </div>
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">
-              First Name
-            </label>
-            <input
-              type="text"
-              name="firstName"
-              value={customer.firstName}
-              onChange={handleCustomerChange}
-              className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-              placeholder="Enter first name"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">
-              Last Name
-            </label>
-            <input
-              type="text"
-              name="lastName"
-              value={customer.lastName}
-              onChange={handleCustomerChange}
-              className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-              placeholder="Enter last name"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={customer.email}
-              onChange={handleCustomerChange}
-              className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-              placeholder="Enter email address"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">
-              Telephone Numbers
-            </label>
-            <input
-              type="text"
-              name="phoneNumbers"
-              value={customer.phoneNumbers}
-              onChange={handleCustomerChange}
-              className={`w-full mt-1 p-2 border ${
-                phoneError ? "border-red-500" : "border-gray-300"
-              } rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200`}
-              placeholder="Enter phone numbers (comma-separated)"
-            />
-            {phoneError && (
-              <p className="text-sm text-red-500 mt-1">{phoneError}</p>
-            )}
+            <div className="hidden md:flex items-center space-x-2">
+              <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                New Job
+              </span>
+              <span className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                Customer Registration
+              </span>
+              <span className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                Product Details
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Product and Job Details Section */}
-        <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
-          <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">
-            Product and Job Details
-          </h3>
-          
-          {/* Enhanced Search Bar for Product */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
-              Search Existing Product
-            </label>
-            
-            <div className="flex gap-2 mb-3">
-              <select
-                value={searchType}
-                onChange={(e) => setSearchType(e.target.value as "combined" | "general")}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-              >
-                <option value="general">General Search</option>
-                <option value="combined">Advanced Search</option>
-              </select>
-            </div>
-            
-            {searchType === "general" ? (
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={productSearch}
-                  onChange={(e) => setProductSearch(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-                  placeholder="Search by name, model, or model number"
-                />
-                <button
-                  type="button"
-                  onClick={handleProductSearch}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                >
-                  Search
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={productNameSearch}
-                    onChange={(e) => setProductNameSearch(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-                    placeholder="Product name"
-                  />
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            {/* Left Section: Customer Information */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Customer Search */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+                  <div className="flex items-center space-x-2">
+                    <User className="text-white" size={20} />
+                    <h2 className="text-xl font-semibold text-white">
+                      Find Existing Customer
+                    </h2>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={modelSearch}
-                    onChange={(e) => setModelSearch(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-                    placeholder="Model"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={handleProductSearch}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                >
-                  Search
-                </button>
-              </div>
-            )}
-          </div>
-          
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">
-              Product Name
-            </label>
-            <input
-              type="text"
-              name="productName"
-              value={product.productName}
-              onChange={handleProductChange}
-              className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-              placeholder="Enter product name"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">
-              Model
-            </label>
-            <input
-              type="text"
-              name="model"
-              value={product.model}
-              onChange={handleProductChange}
-              className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-              placeholder="Enter model"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">
-              Model Number
-            </label>
-            <input
-              type="text"
-              name="modelNumber"
-              value={product.modelNumber}
-              onChange={handleProductChange}
-              className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-              placeholder="Enter model number"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">
-              Repair Description
-            </label>
-            <textarea
-              name="repairDescription"
-              value={job.repairDescription}
-              onChange={handleJobChange}
-              className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-              placeholder="Enter repair description"
-              rows={3}
-            ></textarea>
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">
-              Repair Status
-            </label>
-            <select
-              name="repairStatus"
-              value={job.repairStatus}
-              onChange={handleJobChange}
-              className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-            >
-              <option value="Pending">Pending</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Completed">Completed</option>
-            </select>
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">
-              Handover Date
-            </label>
-            <input
-              type="date"
-              name="handoverDate"
-              value={job.handoverDate}
-              onChange={handleJobChange}
-              className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">
-              Assigned Employee
-            </label>
-            <select
-              name="employeeID"
-              value={job.employeeID}
-              onChange={handleJobChange}
-              className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-            >
-              <option value="">Select Employee</option>
-              {employees.map((employee) => (
-                <option key={employee.id} value={employee.id}>
-                  {employee.firstName} {employee.lastName}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">
-              Product Image
-            </label>
-            <div className="flex items-center gap-4">
-              <div className="w-40 h-40 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center overflow-hidden">
-                {imagePreview ? (
-                  <img
-                    src={imagePreview}
-                    alt="Product Preview"
-                    className="w-full h-full object-cover"
-                    onLoad={() => console.log("Image loaded successfully")} // Debug
-                    onError={(e) => {
-                      console.error("Image load error:", e); // Debug
-                      // Fallback image on error
-                      (e.target as HTMLImageElement).onerror = null; // Prevent infinite loop
-                      (e.target as HTMLImageElement).src = "https://via.placeholder.com/150?text=No+Image";
-                    }}
-                  />
-                ) : (
-                  <span className="text-gray-400 dark:text-gray-500">
-                    No Image
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className={`${isUploading ? 'bg-gray-500' : 'bg-blue-500'} text-white px-4 py-2 rounded-md cursor-pointer hover:bg-blue-600 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                  {isUploading ? 'Uploading...' : 'Upload Image'}
-                  <input 
-                    type="file" 
-                    hidden 
-                    onChange={handleImageChange} 
-                    disabled={isUploading}
-                  />
-                </label>
-                {imagePreview && (
+                <div className="p-6">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={customerSearch}
+                      onChange={(e) => setCustomerSearch(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
+                      placeholder="Search by name, email, or phone"
+                    />
+                    <div className="absolute top-0 left-0 h-full flex items-center pl-3">
+                      <Search className="text-gray-400" size={18} />
+                    </div>
+                  </div>
+                  
                   <button
                     type="button"
-                    onClick={() => {
-                      setImagePreview(null);
-                      setProduct(prev => ({ ...prev, productImage: null }));
-                    }}
-                    className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                    onClick={handleCustomerSearch}
+                    disabled={isLoading || !customerSearch.trim()}
+                    className={`mt-3 w-full flex items-center justify-center px-4 py-2 rounded-lg ${
+                      isLoading || !customerSearch.trim()
+                        ? "bg-gray-300 text-gray-600 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
+                        : "bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
+                    } transition-colors duration-200`}
                   >
-                    Remove Image
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="animate-spin mr-2" size={18} />
+                        Searching...
+                      </>
+                    ) : (
+                      "Search for Customer"
+                    )}
                   </button>
-                )}
+                  
+                  {isCustomerFound && (
+                    <div className="mt-3 p-3 bg-green-50 border border-green-100 rounded-lg dark:bg-green-900/30 dark:border-green-800">
+                      <div className="flex items-start">
+                        <CheckCircle className="text-green-500 mr-2 flex-shrink-0 mt-0.5" size={16} />
+                        <div>
+                          <p className="text-green-800 dark:text-green-300 text-sm font-medium">
+                            Customer found!
+                          </p>
+                          <p className="text-green-700 dark:text-green-400 text-xs mt-1">
+                            Customer details have been loaded.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Customer Information */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+                <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4">
+                  <div className="flex items-center space-x-2">
+                    <User className="text-white" size={20} />
+                    <h2 className="text-xl font-semibold text-white">
+                      Customer Details
+                    </h2>
+                  </div>
+                </div>
+                <div className="p-6 space-y-4">
+                  {/* Customer name row */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        First Name
+                      </label>
+                      <input
+                        type="text"
+                        name="firstName"
+                        value={customer.firstName}
+                        onChange={handleCustomerChange}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                        placeholder="First name"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Last Name
+                      </label>
+                      <input
+                        type="text"
+                        name="lastName"
+                        value={customer.lastName}
+                        onChange={handleCustomerChange}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                        placeholder="Last name"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <span className="flex items-center">
+                        <Mail size={16} className="mr-1" />
+                        Email Address
+                      </span>
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={customer.email}
+                      onChange={handleCustomerChange}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                      placeholder="customer@example.com"
+                    />
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <span className="flex items-center">
+                        <Smartphone size={16} className="mr-1" />
+                        Phone Numbers
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      name="phoneNumbers"
+                      value={customer.phoneNumbers}
+                      onChange={handleCustomerChange}
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-gray-200 ${
+                        phoneError 
+                          ? "border-red-500 dark:border-red-500" 
+                          : "border-gray-300 dark:border-gray-600"
+                      }`}
+                      placeholder="07XXXXXXXX, 07XXXXXXXX"
+                    />
+                    {phoneError && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                        <AlertCircle size={14} className="mr-1" />
+                        {phoneError}
+                      </p>
+                    )}
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Enter multiple numbers separated by commas
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Section: Product & Job Details */}
+            <div className="lg:col-span-3 space-y-6">
+              {/* Product Search */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+                <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
+                  <div className="flex items-center space-x-2">
+                    <Package className="text-white" size={20} />
+                    <h2 className="text-xl font-semibold text-white">
+                      Find Existing Product
+                    </h2>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <span className="text-gray-700 dark:text-gray-300 text-sm font-medium">Search Type:</span>
+                    <label className="inline-flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        className="form-radio text-green-600 border-gray-300 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-700"
+                        checked={searchType === "general"}
+                        onChange={() => setSearchType("general")}
+                      />
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">General</span>
+                    </label>
+                    <label className="inline-flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        className="form-radio text-green-600 border-gray-300 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-700"
+                        checked={searchType === "combined"}
+                        onChange={() => setSearchType("combined")}
+                      />
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Advanced</span>
+                    </label>
+                  </div>
+
+                  {/* Search fields based on search type */}
+                  {searchType === "general" ? (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-gray-200"
+                        placeholder="Search by product name, model or model number"
+                      />
+                      <div className="absolute top-0 left-0 h-full flex items-center pl-3">
+                        <Search className="text-gray-400" size={18} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={productNameSearch}
+                          onChange={(e) => setProductNameSearch(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-gray-200"
+                          placeholder="Product name (e.g. Samsung TV)"
+                        />
+                        <div className="absolute top-0 left-0 h-full flex items-center pl-3">
+                          <Search className="text-gray-400" size={18} />
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={modelSearch}
+                          onChange={(e) => setModelSearch(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-gray-200"
+                          placeholder="Model (e.g. UHD4K)"
+                        />
+                        <div className="absolute top-0 left-0 h-full flex items-center pl-3">
+                          <Search className="text-gray-400" size={18} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleProductSearch}
+                    disabled={isLoading || (searchType === "general" ? !productSearch.trim() : (!productNameSearch.trim() && !modelSearch.trim()))}
+                    className={`mt-3 w-full flex items-center justify-center px-4 py-2 rounded-lg ${
+                      isLoading || (searchType === "general" ? !productSearch.trim() : (!productNameSearch.trim() && !modelSearch.trim()))
+                        ? "bg-gray-300 text-gray-600 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
+                        : "bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
+                    } transition-colors duration-200`}
+                  >
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="animate-spin mr-2" size={18} />
+                        Searching...
+                      </>
+                    ) : (
+                      "Search for Product"
+                    )}
+                  </button>
+                  
+                  {isProductFound && (
+                    <div className="mt-3 p-3 bg-green-50 border border-green-100 rounded-lg dark:bg-green-900/30 dark:border-green-800">
+                      <div className="flex items-start">
+                        <CheckCircle className="text-green-500 mr-2 flex-shrink-0 mt-0.5" size={16} />
+                        <div>
+                          <p className="text-green-800 dark:text-green-300 text-sm font-medium">
+                            Product found!
+                          </p>
+                          <p className="text-green-700 dark:text-green-400 text-xs mt-1">
+                            Product details have been loaded.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Product Information */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+                <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4">
+                  <div className="flex items-center space-x-2">
+                    <Package className="text-white" size={20} />
+                    <h2 className="text-xl font-semibold text-white">
+                      Product Details
+                    </h2>
+                  </div>
+                </div>
+                
+                <div className="p-6 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Product Name
+                      </label>
+                      <input
+                        type="text"
+                        name="productName"
+                        value={product.productName}
+                        onChange={handleProductChange}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                        placeholder="Product name"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Model
+                      </label>
+                      <input
+                        type="text"
+                        name="model"
+                        value={product.model}
+                        onChange={handleProductChange}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                        placeholder="Model"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Model Number
+                    </label>
+                    <input
+                      type="text"
+                      name="modelNumber"
+                      value={product.modelNumber}
+                      onChange={handleProductChange}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                      placeholder="Model number"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Product Image
+                    </label>
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <div className="w-full sm:w-1/3">
+                        <div className="aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden">
+                          {imagePreview ? (
+                            <img
+                              src={imagePreview}
+                              alt="Product"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                console.error("Image load error");
+                                (e.target as HTMLImageElement).onerror = null;
+                                (e.target as HTMLImageElement).src = "https://via.placeholder.com/300?text=Error";
+                              }}
+                            />
+                          ) : (
+                            <div className="text-center p-4">
+                              <Upload size={36} className="mx-auto text-gray-400 dark:text-gray-500" />
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                                No image selected
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="w-full sm:w-2/3 flex flex-col gap-2">
+                        <label
+                          className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg cursor-pointer border border-gray-300 dark:border-gray-600 text-center ${
+                            isUploading
+                              ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
+                              : "bg-white text-purple-600 hover:bg-gray-50 dark:bg-gray-700 dark:text-purple-400 dark:hover:bg-gray-750"
+                          }`}
+                        >
+                          {isUploading ? (
+                            <>
+                              <RefreshCw className="animate-spin" size={18} />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload size={18} />
+                              Choose Image
+                            </>
+                          )}
+                          <input
+                            type="file"
+                            className="hidden"
+                            onChange={handleImageChange}
+                            accept="image/jpeg,image/png"
+                            disabled={isUploading}
+                          />
+                        </label>
+                        
+                        {imagePreview && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setImagePreview(null);
+                              setProduct(prev => ({ ...prev, productImage: null }));
+                            }}
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 border border-red-100 text-red-600 rounded-lg hover:bg-red-100 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/50"
+                          >
+                            <X size={18} />
+                            Remove Image
+                          </button>
+                        )}
+                        
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Upload JPEG or PNG image (max 5MB)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Job Information */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+                <div className="bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-4">
+                  <div className="flex items-center space-x-2">
+                    <Clock className="text-white" size={20} />
+                    <h2 className="text-xl font-semibold text-white">
+                      Job Details
+                    </h2>
+                  </div>
+                </div>
+                
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Repair Description
+                    </label>
+                    <textarea
+                      name="repairDescription"
+                      value={job.repairDescription}
+                      onChange={handleJobChange}
+                      rows={3}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                      placeholder="Describe the repair needed"
+                      required
+                    ></textarea>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Repair Status
+                      </label>
+                      <div className="relative">
+                        <select
+                          name="repairStatus"
+                          value={job.repairStatus}
+                          onChange={handleJobChange}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 appearance-none dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                          required
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="In Progress">In Progress</option>
+                          <option value="Completed">Completed</option>
+                          <option value="Cancelled">Cancelled</option>
+                        </select>
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <div className="flex items-center">
+                          <Calendar size={16} className="mr-1" />
+                          Expected Handover Date
+                        </div>
+                      </label>
+                      <input
+                        type="date"
+                        name="handoverDate"
+                        value={job.handoverDate}
+                        onChange={handleJobChange}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Assigned Employee
+                    </label>
+                    <div className="relative">
+                      <select
+                        name="employeeID"
+                        value={job.employeeID}
+                        onChange={handleJobChange}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 appearance-none dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                        required
+                      >
+                        <option value="" disabled>Select an employee</option>
+                        {employees.map((employee) => (
+                          <option key={employee.id} value={employee.id}>
+                            {employee.firstName} {employee.lastName}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </form>
 
-      {/* Action Buttons */}
-      <div className="mt-6 flex justify-end gap-4">
-        <button
-          type="button"
-          className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-          onClick={() => {
-            // Reset form
-            setCustomer({
-              firstName: "",
-              lastName: "",
-              email: "",
-              phoneNumbers: "",
-            });
-            setJob({
-              repairDescription: "",
-              repairStatus: "Pending",
-              handoverDate: "",
-              employeeID: "",
-            });
-            setProduct({
-              productName: "",
-              model: "",
-              modelNumber: "",
-              productImage: null,
-            });
-            setImagePreview(null);
-            setIsCustomerFound(false);
-            setIsProductFound(false);
-            setCustomerSearch("");
-            setProductSearch("");
-            setProductNameSearch("");
-            setModelSearch("");
-            setSearchType("general");
-            setError("");
-            setMessage("");
-          }}
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-          onClick={handleSubmit}
-          disabled={isUploading}
-        >
-          Register
-        </button>
+          {/* Notifications */}
+          {(message || error) && (
+            <div className="mt-6">
+              {message && (
+                <div className="flex items-center p-4 mb-4 bg-green-50 border-l-4 border-green-600 rounded-lg dark:bg-green-900/30 dark:border-green-500">
+                  <CheckCircle className="text-green-600 dark:text-green-400 mr-3 flex-shrink-0" size={24} />
+                  <div>
+                    <h3 className="text-green-800 dark:text-green-300 font-medium">Success</h3>
+                    <p className="text-green-700 dark:text-green-400 text-sm">{message}</p>
+                  </div>
+                </div>
+              )}
+              
+              {error && (
+                <div className="flex items-center p-4 mb-4 bg-red-50 border-l-4 border-red-600 rounded-lg dark:bg-red-900/30 dark:border-red-500">
+                  <AlertCircle className="text-red-600 dark:text-red-400 mr-3 flex-shrink-0" size={24} />
+                  <div>
+                    <h3 className="text-red-800 dark:text-red-300 font-medium">Error</h3>
+                    <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="mt-6 flex flex-col sm:flex-row justify-end gap-3">
+            <button
+              type="button"
+              onClick={resetForm}
+              className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-650"
+            >
+              Reset Form
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting || isUploading}
+              className={`px-6 py-2.5 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                isSubmitting || isUploading
+                  ? "bg-blue-400 text-white cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500"
+              }`}
+            >
+              {isSubmitting ? (
+                <div className="flex items-center justify-center">
+                  <RefreshCw className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" />
+                  <span>Registering...</span>
+                </div>
+              ) : (
+                "Register Job & Customer"
+              )}
+            </button>
+          </div>
+        </form>
+
+        {/* Help Card */}
+        <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-6">
+          <div className="flex items-start">
+            <Info className="text-blue-600 dark:text-blue-400 mr-4 mt-0.5 flex-shrink-0" size={24} />
+            <div>
+              <h3 className="text-blue-800 dark:text-blue-300 font-medium text-lg mb-2">
+                Tips for Registration
+              </h3>
+              <ul className="list-disc list-inside space-y-1 text-blue-700 dark:text-blue-400 text-sm">
+                <li>Search for existing customers by name, email, or phone number</li>
+                <li>Search for existing products by name or model to avoid duplicates</li>
+                <li>Upload clear images of products to help with identification</li>
+                <li>Provide detailed repair descriptions for better service tracking</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
-
-      {/* Success/Error Messages */}
-      {message && (
-        <div className="mt-4 p-4 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-md">
-          {message}
-        </div>
-      )}
-      {error && (
-        <div className="mt-4 p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-md">
-          {error}
-        </div>
-      )}
     </div>
   );
 };

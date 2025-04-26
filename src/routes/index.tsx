@@ -1,7 +1,7 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import Dashboard from "../pages/Dashboard";
-import Customers from "../pages/Customers";
+import  Customers from "../pages/Customers";
 import RepairJobs from "../pages/RepairJobs";
 import Products from "../pages/Products";
 import Salary from "../pages/Salary";
@@ -21,6 +21,13 @@ import JobDetails from "../pages/JobDetails";
 import EditJob from "../pages/EditJob";
 import WarrantyJobs from "../pages/WarrantyJobs";
 import MySalary from "../pages/MySalary";
+import RegisterSalary from "../pages/RegisterSalary";
+import ViewInvoices from "../pages/ViewInvoices";
+import InvoiceDetails from "../pages/InvoiceDetail";
+import ViewJobUsedInventory from "../pages/ViewJobUsedInventory";
+import ViewAdvancePayments from "../pages/ViewAdvancePayments";
+import AdvanceInvoiceDetail from "../pages/AdvanceInvoiceDetail";
+import PurchaseItems from "../pages/PurchaseItems";
 
 const AppRoutes = () => {
   return (
@@ -46,7 +53,13 @@ const AppRoutes = () => {
       <Route path="/edit-job/:jobId" element={<EditJob />} />
       <Route path="/warranty-jobs" element={<WarrantyJobs />} />
       <Route path="/my-salary" element={<MySalary />} />
-      {/* Add more routes as needed */}
+      <Route path="/register-salary" element={<RegisterSalary />} />
+      <Route path="/view-invoice" element={<ViewInvoices />} />
+      <Route path="/invoice/:id" element={<InvoiceDetails />} />
+      <Route path="/view-job-used-inventory" element={<ViewJobUsedInventory />} />
+      <Route path="/view-advance-invoice" element={<ViewAdvancePayments />} />
+      <Route path="/advance-payment/:jobId" element={<AdvanceInvoiceDetail />} />
+      <Route path="/purchase-items" element={<PurchaseItems />} />
     </Routes>
   );
 };
