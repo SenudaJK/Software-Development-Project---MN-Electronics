@@ -1,0 +1,449 @@
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import Card from '../../components/common/Card';
+import Button from '../../components/common/Button';
+import axios from 'axios';
+import { 
+  Smartphone, 
+  Calendar, 
+  Clock, 
+  CheckCircle,
+  AlertTriangle,
+  ChevronRight,
+  Plus,
+  FileText,
+  AlertCircle,
+  ShieldCheck
+} from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+
+// Define the job interface from backend
+interface Job {
+  job_id: number;
+  repair_description: string;
+  repair_status: string;
+  handover_date: string | null;
+  warranty_eligible: number; // MySQL returns 0/1 for boolean values
+  assigned_employee: number;
+  assigned_employee_name: string;
+  customer_id: number;
+  customer_first_name: string;
+  customer_last_name: string;
+  product_id: number;
+  product_name: string;
+  model: string;
+  model_number: string;
+  product_image: string | null;
+}
+
+const DashboardPage: React.FC = () => {
+  const { user } = useAuth();
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // Fetch jobs for the logged in user
+  useEffect(() => {
+    const fetchJobs = async () => {
+      if (!user || !user.id) {
+        console.log('No user ID found');
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log('Fetching jobs for user ID:', user.id);
+      
+      try {
+        setIsLoading(true);
+        
+        // Make API request to get jobs for the logged-in customer
+        const apiUrl = `http://localhost:5000/api/jobs/customer/${user.id}`;
+        console.log('API URL:', apiUrl);
+        
+        const response = await axios.get(apiUrl, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        console.log('API response:', response.data);
+        
+        // Check if the response data is an array
+        if (Array.isArray(response.data)) {
+          setJobs(response.data);
+        } else {
+          console.error('Expected array response but got:', typeof response.data);
+          setJobs([]);
+        }
+        
+      } catch (err: any) {
+        console.error('Failed to fetch jobs:', err);
+        setError(err?.response?.data?.message || 'Failed to load job data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchJobs();
+  }, [user]);
+  
+  // Get active and completed jobs
+  const activeJobs = jobs.filter(job => 
+    job.repair_status !== 'Delivered' && 
+    job.repair_status !== 'Completed'
+  );
+  
+  const completedJobs = jobs.filter(job => 
+    job.repair_status === 'Delivered' || 
+    job.repair_status === 'Completed'
+  );
+  
+  // Convert backend status to UI status format
+  const convertStatus = (backendStatus: string): string => {
+    switch (backendStatus?.toLowerCase()) {
+      case 'pending':
+        return 'pending';
+      case 'diagnosed':
+        return 'diagnosed';
+      case 'in progress':
+        return 'in_progress';
+      case 'awaiting parts':
+        return 'awaiting_parts';
+      case 'completed':
+        return 'completed';
+      case 'ready for pickup':
+        return 'ready_for_pickup';
+      case 'delivered':
+        return 'delivered';
+      default:
+        return 'pending';
+    }
+  };
+
+  // Get status text and color for each repair status
+  const getStatusInfo = (status: string) => {
+    const formattedStatus = convertStatus(status);
+    
+    switch (formattedStatus) {
+      case 'pending':
+        return { text: 'Pending', color: 'text-warning' };
+      case 'diagnosed':
+        return { text: 'Diagnosed', color: 'text-primary' };
+      case 'in_progress':
+        return { text: 'In Progress', color: 'text-primary' };
+      case 'awaiting_parts':
+        return { text: 'Awaiting Parts', color: 'text-warning' };
+      case 'completed':
+        return { text: 'Completed', color: 'text-success' };
+      case 'ready_for_pickup':
+        return { text: 'Ready for Pickup', color: 'text-success' };
+      case 'delivered':
+        return { text: 'Delivered', color: 'text-text-secondary' };
+      default:
+        return { text: status, color: 'text-text-secondary' };
+    }
+  };
+
+  // Format handover date to display est. completion time
+  const formatHandoverDate = (date: string | null) => {
+    if (!date) return null;
+    return formatDistanceToNow(new Date(date), { addSuffix: true });
+  };
+
+  // Get full device name with model
+  const getFullDeviceName = (job: Job) => {
+    let deviceName = job.product_name;
+    
+    if (job.model && job.model.trim() !== '') {
+      deviceName += ` ${job.model}`;
+    }
+    
+    if (job.model_number && job.model_number.trim() !== '') {
+      deviceName += ` (${job.model_number})`;
+    }
+    
+    return deviceName;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="page-container">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-text font-heading">Dashboard</h1>
+        <p className="text-text-secondary">Welcome back, {user?.firstName || user?.username || 'Customer'}!</p>
+      </div>
+      
+      {error && (
+        <div className="bg-error-light text-error p-4 rounded-lg mb-6 flex items-center">
+          <AlertCircle className="mr-2" size={20} />
+          <span>{error}</span>
+        </div>
+      )}
+      
+      {/* Dashboard Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <Card className="bg-primary text-white">
+          <div className="flex items-center">
+            <div className="p-3 bg-white bg-opacity-20 rounded-full mr-4">
+              <Smartphone size={24} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-white text-opacity-90">Active Repairs</p>
+              <h3 className="text-2xl font-bold">{activeJobs.length}</h3>
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="bg-success text-white">
+          <div className="flex items-center">
+            <div className="p-3 bg-white bg-opacity-20 rounded-full mr-4">
+              <CheckCircle size={24} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-white text-opacity-90">Completed Repairs</p>
+              <h3 className="text-2xl font-bold">{completedJobs.length}</h3>
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="bg-accent text-white">
+          <div className="flex items-center">
+            <div className="p-3 bg-white bg-opacity-20 rounded-full mr-4">
+              <Calendar size={24} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-white text-opacity-90">Next Appointment</p>
+              <h3 className="text-lg font-bold truncate">
+                {activeJobs.length > 0 && activeJobs[0].handover_date
+                  ? formatHandoverDate(activeJobs[0].handover_date)
+                  : 'No upcoming appointments'}
+              </h3>
+            </div>
+          </div>
+        </Card>
+      </div>
+      
+      {/* Active Repairs */}
+      <div className="mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-text font-heading">Active Repairs</h2>
+          <Link to="/new-booking">
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus size={16} />}
+            >
+              New Repair
+            </Button>
+          </Link>
+        </div>
+        
+        {activeJobs.length === 0 && !error ? (
+          <Card className="text-center py-12">
+            <h3 className="text-lg font-bold text-text mb-2">No Active Repairs</h3>
+            <p className="text-text-secondary mb-6">You don't have any active repair orders at the moment.</p>
+            <Link to="/new-booking">
+              <Button variant="primary" leftIcon={<Plus size={18} />}>
+                Book a Repair
+              </Button>
+            </Link>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {activeJobs.map((job) => (
+              <Card key={job.job_id} hoverable className="p-0 overflow-hidden">
+                <div className="flex flex-col md:flex-row">
+                  {/* Product Image */}
+                  <div className="md:w-32 md:h-auto bg-gray-100 flex items-center justify-center">
+                    {job.product_image ? (
+                      <img 
+                        src={job.product_image} 
+                        alt={job.product_name}
+                        className="w-full h-48 md:h-full object-cover" 
+                      />
+                    ) : (
+                      <div className="p-6">
+                        <Smartphone size={48} className="text-gray-300" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Job Details */}
+                  <div className="flex-grow p-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
+                      <div>
+                        <span className="inline-block px-2 py-1 bg-gray-100 rounded text-sm mb-2">
+                          #{job.job_id}
+                        </span>
+                        <h3 className="text-lg font-bold text-text">
+                          {getFullDeviceName(job)}
+                        </h3>
+                      </div>
+                      <div className={`${getStatusInfo(job.repair_status).color} font-medium mt-2 md:mt-0`}>
+                        {getStatusInfo(job.repair_status).text}
+                      </div>
+                    </div>
+                    
+                    <div className="mb-4">
+                      <p className="text-text-secondary">{job.repair_description}</p>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-4 mb-2">
+                      <div className="flex items-center text-sm text-text-secondary">
+                        <Calendar size={16} className="mr-1" />
+                        <span>
+                          Created {job.job_id ? 'recently' : 'unknown'}
+                        </span>
+                      </div>
+                      
+                      {job.handover_date && (
+                        <div className="flex items-center text-sm text-text-secondary">
+                          <Clock size={16} className="mr-1" />
+                          <span>
+                            Est. completion {formatHandoverDate(job.handover_date)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Display warranty status */}
+                    {job.warranty_eligible === 1 && (
+                      <div className="flex items-center text-sm text-success mb-2">
+                        <ShieldCheck size={16} className="mr-1" />
+                        <span>Covered under warranty</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="bg-gray-50 p-6 flex flex-row md:flex-col justify-between items-center md:border-l border-gray-100">
+                    <Link to={`/repair-details/${job.job_id}`}>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        rightIcon={<ChevronRight size={16} />}
+                      >
+                        Details
+                      </Button>
+                    </Link>
+                    
+                    {job.repair_status?.toLowerCase() === 'ready for pickup' && (
+                      <div className="flex items-center mt-0 md:mt-4 ml-4 md:ml-0">
+                        <AlertTriangle size={16} className="text-warning mr-2" />
+                        <span className="text-sm font-medium text-warning">Ready for pickup</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      {/* Repair History */}
+      <div>
+        <h2 className="text-xl font-bold text-text font-heading mb-4">Repair History</h2>
+        
+        {completedJobs.length === 0 ? (
+          <Card>
+            <p className="text-text-secondary text-center py-6">No repair history found.</p>
+          </Card>
+        ) : (
+          <Card>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead>
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                      Repair ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                      Device
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                      Model Number
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                      Issue
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {completedJobs.map((job) => (
+                    <tr key={job.job_id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text">
+                        #{job.job_id}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-text flex items-center">
+                        {job.product_image && (
+                          <div className="w-10 h-10 mr-3 rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                            <img 
+                              src={job.product_image} 
+                              alt={job.product_name}
+                              className="w-full h-full object-cover" 
+                            />
+                          </div>
+                        )}
+                        <span>{job.product_name} {job.model}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text">
+                        {job.model_number || '-'}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-text-secondary max-w-xs truncate">
+                        {job.repair_description}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
+                        {job.handover_date ? new Date(job.handover_date).toLocaleDateString() : 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className={getStatusInfo(job.repair_status).color}>
+                          {getStatusInfo(job.repair_status).text}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex items-center space-x-2">
+                          <Link
+                            to={`/repair-details/${job.job_id}`}
+                            className="text-primary hover:text-primary-dark"
+                          >
+                            View
+                          </Link>
+                          {job.repair_status?.toLowerCase() === 'completed' && (
+                            <button className="text-text-secondary hover:text-primary flex items-center">
+                              <FileText size={16} className="mr-1" />
+                              Invoice
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default DashboardPage;
