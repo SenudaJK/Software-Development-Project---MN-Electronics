@@ -327,7 +327,6 @@ const SignupPage: React.FC = () => {
               type="submit"
               variant="primary"
               size="lg"
-              fullWidth
               isLoading={isSubmitting}
             >
               Create Account

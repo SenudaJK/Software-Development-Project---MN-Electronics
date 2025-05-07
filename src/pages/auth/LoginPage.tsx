@@ -106,7 +106,7 @@ const LoginPage: React.FC = () => {
               type="submit"
               variant="primary"
               size="lg"
-              fullWidth
+              className="w-full"
               isLoading={isSubmitting}
             >
               Sign In
