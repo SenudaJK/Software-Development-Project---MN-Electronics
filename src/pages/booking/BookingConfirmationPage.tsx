@@ -10,10 +10,31 @@ import {
   Phone, 
   Printer,
   Download,
-  ChevronRight
+  ChevronRight,
+  Cpu,
+  Smartphone,
+  Laptop,
+  Monitor,
+  Tablet,
+  Tv,
+  Gamepad2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { deviceTypes } from '../../data/mockData';
+
+// Add this helper function at the top of your component
+const formatDateFromString = (dateString: string): string => {
+  try {
+    // If it's already formatted, return as is
+    if (dateString.includes(',')) return dateString;
+    
+    // Otherwise try to format it
+    return format(new Date(dateString), 'EEEE, MMMM d, yyyy');
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return dateString; // Return original if formatting fails
+  }
+};
 
 const BookingConfirmationPage: React.FC = () => {
   const location = useLocation();
@@ -32,12 +53,32 @@ const BookingConfirmationPage: React.FC = () => {
   }
   
   const selectedDevice = deviceTypes.find((d) => d.id === booking.deviceType);
-  const selectedDate = booking.date 
-    ? format(new Date(booking.date), 'EEEE, MMMM d, yyyy')
-    : '';
+  const selectedDate = booking.date ? formatDateFromString(booking.date) : '';
   
   // Generate a random booking reference
-  const bookingReference = `MN-${Math.floor(10000 + Math.random() * 90000)}`;
+  const bookingReference = booking.bookingReference || `MN-${Math.floor(10000 + Math.random() * 90000)}`;
+  
+  // Get icon component based on device type
+  const getDeviceIcon = () => {
+    if (!selectedDevice) return <Cpu size={32} className="text-primary" />;
+    
+    switch (selectedDevice.icon) {
+      case 'smartphone':
+        return <Smartphone size={32} className="text-primary" />;
+      case 'laptop':
+        return <Laptop size={32} className="text-primary" />;
+      case 'monitor':
+        return <Monitor size={32} className="text-primary" />;
+      case 'tablet':
+        return <Tablet size={32} className="text-primary" />;
+      case 'tv':
+        return <Tv size={32} className="text-primary" />;
+      case 'gamepad-2':
+        return <Gamepad2 size={32} className="text-primary" />;
+      default:
+        return <Cpu size={32} className="text-primary" />;
+    }
+  };
   
   return (
     <div className="page-container">
@@ -55,10 +96,7 @@ const BookingConfirmationPage: React.FC = () => {
         <Card className="mb-8">
           <div className="flex flex-col sm:flex-row items-center sm:items-start border-b border-gray-200 pb-6 mb-6">
             <div className="rounded-full bg-primary bg-opacity-10 p-4 mb-4 sm:mb-0 sm:mr-6">
-              {selectedDevice && React.createElement(
-                lucide[selectedDevice.icon.charAt(0).toUpperCase() + selectedDevice.icon.slice(1)] || Cpu,
-                { size: 32, className: 'text-primary' }
-              )}
+              {getDeviceIcon()}
             </div>
             <div className="text-center sm:text-left">
               <p className="text-sm text-text-secondary mb-1">Booking Reference</p>
@@ -66,6 +104,11 @@ const BookingConfirmationPage: React.FC = () => {
               <p className="text-text-secondary">
                 {selectedDevice?.name} • {booking.deviceBrand} {booking.deviceModel}
               </p>
+              {booking.modelNumber && (
+                <p className="text-sm text-text-secondary mt-1">
+                  Model #: {booking.modelNumber}
+                </p>
+              )}
             </div>
           </div>
           

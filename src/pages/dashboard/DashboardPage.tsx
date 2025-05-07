@@ -90,32 +90,34 @@ const DashboardPage: React.FC = () => {
   
   // Get active and completed jobs
   const activeJobs = jobs.filter(job => 
-    job.repair_status !== 'Delivered' && 
-    job.repair_status !== 'Completed'
+    !['Delivered', 'Completed', 'Paid', 'Warranty-Claimed'].includes(job.repair_status)
   );
   
   const completedJobs = jobs.filter(job => 
-    job.repair_status === 'Delivered' || 
-    job.repair_status === 'Completed'
+    ['Delivered', 'Completed', 'Paid', 'Warranty-Claimed'].includes(job.repair_status)
   );
   
   // Convert backend status to UI status format
   const convertStatus = (backendStatus: string): string => {
     switch (backendStatus?.toLowerCase()) {
+      case 'booking pending':
+        return 'booking_pending';
+      case 'booking approved':
+        return 'booking_approved';
+      case 'booking cancelled':
+        return 'booking_cancelled';
       case 'pending':
         return 'pending';
-      case 'diagnosed':
-        return 'diagnosed';
+      case 'cannot repair':
+        return 'cannot_repair';
       case 'in progress':
         return 'in_progress';
-      case 'awaiting parts':
-        return 'awaiting_parts';
       case 'completed':
         return 'completed';
-      case 'ready for pickup':
-        return 'ready_for_pickup';
-      case 'delivered':
-        return 'delivered';
+      case 'paid':
+        return 'paid';
+      case 'warranty-claimed':
+        return 'warranty_claimed';
       default:
         return 'pending';
     }
@@ -126,20 +128,24 @@ const DashboardPage: React.FC = () => {
     const formattedStatus = convertStatus(status);
     
     switch (formattedStatus) {
+      case 'booking_pending':
+        return { text: 'Booking Pending', color: 'text-warning' };
+      case 'booking_approved':
+        return { text: 'Booking Approved', color: 'text-success' };
+      case 'booking_cancelled':
+        return { text: 'Booking Cancelled', color: 'text-error' };
       case 'pending':
         return { text: 'Pending', color: 'text-warning' };
-      case 'diagnosed':
-        return { text: 'Diagnosed', color: 'text-primary' };
+      case 'cannot_repair':
+        return { text: 'Cannot Repair', color: 'text-error' };
       case 'in_progress':
         return { text: 'In Progress', color: 'text-primary' };
-      case 'awaiting_parts':
-        return { text: 'Awaiting Parts', color: 'text-warning' };
       case 'completed':
         return { text: 'Completed', color: 'text-success' };
-      case 'ready_for_pickup':
-        return { text: 'Ready for Pickup', color: 'text-success' };
-      case 'delivered':
-        return { text: 'Delivered', color: 'text-text-secondary' };
+      case 'paid':
+        return { text: 'Paid', color: 'text-success' };
+      case 'warranty_claimed':
+        return { text: 'Warranty Claimed', color: 'text-accent' };
       default:
         return { text: status, color: 'text-text-secondary' };
     }
@@ -188,45 +194,132 @@ const DashboardPage: React.FC = () => {
         </div>
       )}
       
-      {/* Dashboard Summary */}
+      {/* Dashboard Summary - Alternative Light Version */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card className="bg-primary text-white">
-          <div className="flex items-center">
-            <div className="p-3 bg-white bg-opacity-20 rounded-full mr-4">
-              <Smartphone size={24} />
+        {/* Active Repairs Box */}
+        <Card className="border-l-4 border-primary">
+          <div className="flex flex-col">
+            <div className="flex items-center mb-3">
+              <div className="p-3 bg-primary bg-opacity-10 rounded-full mr-4">
+                <Smartphone size={24} className="text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-text-secondary">Active Repairs</p>
+                <h3 className="text-2xl font-bold text-primary">{activeJobs.length}</h3>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-white text-opacity-90">Active Repairs</p>
-              <h3 className="text-2xl font-bold">{activeJobs.length}</h3>
+            
+            <div className="mt-2 text-sm space-y-1">
+              {activeJobs.length > 0 ? (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary">Booking Pending:</span>
+                    <span className="text-text font-medium">
+                      {activeJobs.filter(job => job.repair_status === 'Booking Pending').length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary">In Progress:</span>
+                    <span className="text-text font-medium">
+                      {activeJobs.filter(job => job.repair_status === 'In Progress').length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary">Ready for Pickup:</span>
+                    <span className="text-text font-medium">
+                      {activeJobs.filter(job => job.repair_status?.toLowerCase() === 'completed').length}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <p className="text-text-secondary">No active repairs</p>
+              )}
             </div>
           </div>
         </Card>
         
-        <Card className="bg-success text-white">
-          <div className="flex items-center">
-            <div className="p-3 bg-white bg-opacity-20 rounded-full mr-4">
-              <CheckCircle size={24} />
+        {/* Completed Repairs Box */}
+        <Card className="border-l-4 border-success">
+          <div className="flex flex-col">
+            <div className="flex items-center mb-3">
+              <div className="p-3 bg-success bg-opacity-10 rounded-full mr-4">
+                <CheckCircle size={24} className="text-success" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-text-secondary">Completed Repairs</p>
+                <h3 className="text-2xl font-bold text-success">{completedJobs.length}</h3>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-white text-opacity-90">Completed Repairs</p>
-              <h3 className="text-2xl font-bold">{completedJobs.length}</h3>
-            </div>
+            
+            {completedJobs.length > 0 && (
+              <div className="mt-2 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-text-secondary">Last completed:</span>
+                  <span className="text-text font-medium">
+                    {completedJobs.length > 0 && completedJobs[0].handover_date ? 
+                      new Date(completedJobs[0].handover_date).toLocaleDateString() : 
+                      'N/A'}
+                  </span>
+                </div>
+                
+                <div className="mt-2 pt-2 border-t border-gray-200">
+                  <div className="flex items-center">
+                    <ShieldCheck size={16} className="mr-2 text-success" />
+                    <span className="text-text">
+                      {jobs.filter(job => job.warranty_eligible === 1).length} device(s) under warranty
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </Card>
         
-        <Card className="bg-accent text-white">
-          <div className="flex items-center">
-            <div className="p-3 bg-white bg-opacity-20 rounded-full mr-4">
-              <Calendar size={24} />
+        {/* Next Appointment Box */}
+        <Card className="border-l-4 border-accent">
+          <div className="flex flex-col">
+            <div className="flex items-center mb-3">
+              <div className="p-3 bg-accent bg-opacity-10 rounded-full mr-4">
+                <Calendar size={24} className="text-accent" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-text-secondary">Next Appointment</p>
+                <h3 className="text-lg font-bold truncate text-accent">
+                  {activeJobs.length > 0 && activeJobs[0].handover_date
+                    ? formatHandoverDate(activeJobs[0].handover_date)
+                    : 'No upcoming appointments'}
+                </h3>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-white text-opacity-90">Next Appointment</p>
-              <h3 className="text-lg font-bold truncate">
-                {activeJobs.length > 0 && activeJobs[0].handover_date
-                  ? formatHandoverDate(activeJobs[0].handover_date)
-                  : 'No upcoming appointments'}
-              </h3>
-            </div>
+            
+            {activeJobs.length > 0 && activeJobs[0].handover_date && (
+              <div className="mt-2 space-y-2 text-sm">
+                <div className="flex items-center">
+                  <Clock size={16} className="mr-2 text-text-secondary" />
+                  <span className="text-text">
+                    {new Date(activeJobs[0].handover_date).toLocaleDateString()} at{' '}
+                    {new Date(activeJobs[0].handover_date).toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </span>
+                </div>
+                
+                <div className="flex items-center">
+                  <Smartphone size={16} className="mr-2 text-text-secondary" />
+                  <span className="truncate text-text">
+                    {activeJobs[0].product_name} {activeJobs[0].model}
+                  </span>
+                </div>
+                
+                <div className="flex items-center">
+                  <div className={`w-2 h-2 rounded-full mr-2 ${getStatusInfo(activeJobs[0].repair_status).color.replace('text-', 'bg-')}`}></div>
+                  <span className="text-text">
+                    {getStatusInfo(activeJobs[0].repair_status).text}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </Card>
       </div>
@@ -426,11 +519,15 @@ const DashboardPage: React.FC = () => {
                           >
                             View
                           </Link>
-                          {job.repair_status?.toLowerCase() === 'completed' && (
-                            <button className="text-text-secondary hover:text-primary flex items-center">
+                          {/* Show invoice button for paid jobs */}
+                          {job.repair_status === 'Paid' && (
+                            <Link
+                              to={`/invoice/${job.job_id}`}
+                              className="text-accent hover:text-accent-dark flex items-center"
+                            >
                               <FileText size={16} className="mr-1" />
                               Invoice
-                            </button>
+                            </Link>
                           )}
                         </div>
                       </td>

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import { deviceTypes, commonIssues, availableTimeSlots } from '../../data/mockData';
+import axios from 'axios';
 import {
   ChevronRight,
   ChevronLeft,
@@ -19,7 +21,8 @@ import {
   Tablet,
   Tv,
   Gamepad2,
-  Cpu
+  Cpu,
+  AlertCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -43,29 +46,28 @@ const getIconByName = (iconName: string) => {
   }
 };
 
-// Step interface
-interface BookingStep {
-  title: string;
-  subtitle: string;
-}
-
-// Booking form data interface
+// Updated booking form data interface
 interface BookingFormData {
   deviceType: string;
   deviceBrand: string;
   deviceModel: string;
+  modelNumber: string;
   issueDescription: string;
   commonIssue: string;
   date: string;
   time: string;
   additionalNotes: string;
+  productImage: File | null;
 }
 
 const NewBookingPage: React.FC = () => {
   const navigate = useNavigate();
-  
+  const { user } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   // Steps for the booking process
-  const steps: BookingStep[] = [
+  const steps = [
     {
       title: 'Device Information',
       subtitle: 'Select your device type and provide details',
@@ -83,70 +85,167 @@ const NewBookingPage: React.FC = () => {
       subtitle: 'Verify booking details before submitting',
     },
   ];
-  
+
   // State
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<BookingFormData>({
     deviceType: '',
     deviceBrand: '',
     deviceModel: '',
+    modelNumber: '',
     issueDescription: '',
     commonIssue: '',
     date: '',
     time: '',
     additionalNotes: '',
+    productImage: null
   });
-  
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
   // Handle next step
   const handleNextStep = () => {
     setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
+    window.scrollTo(0, 0);
   };
-  
+
   // Handle previous step
   const handlePrevStep = () => {
     setCurrentStep((prev) => Math.max(prev - 1, 0));
+    window.scrollTo(0, 0);
   };
-  
+
   // Handle form data changes
-  const updateFormData = (field: keyof BookingFormData, value: string) => {
+  const updateFormData = (field: keyof BookingFormData, value: any) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
-  
+
   // Handle device type selection
   const handleDeviceTypeSelect = (deviceType: string) => {
     updateFormData('deviceType', deviceType);
   };
-  
+
   // Handle common issue selection
   const handleCommonIssueSelect = (issue: string) => {
     updateFormData('commonIssue', issue);
     updateFormData('issueDescription', issue);
   };
-  
+
   // Handle date selection
   const handleDateSelect = (date: string) => {
     updateFormData('date', date);
     // Reset time when date changes
     updateFormData('time', '');
   };
-  
+
   // Handle time selection
   const handleTimeSelect = (time: string) => {
     updateFormData('time', time);
   };
-  
-  // Handle form submission
-  const handleSubmit = () => {
-    // In a real app, this would send the data to a backend
-    console.log('Booking data:', formData);
-    
-    // Navigate to confirmation page with booking details
-    navigate('/booking-confirmation', { state: { booking: formData } });
+
+  // Handle image upload
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      updateFormData('productImage', file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
-  
+
+  // Handle form submission
+  const handleSubmit = async () => {
+    if (!isCurrentStepValid() || !termsAccepted) {
+      setError('Please accept the terms and conditions');
+      return;
+    }
+
+    if (!user || !user.id) {
+      setError('You must be logged in to make a booking');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      // Format the date properly if it's a date object
+      const formattedDate = typeof formData.date === 'string' 
+        ? formData.date 
+        : format(new Date(formData.date), 'EEEE, MMMM d, yyyy');
+
+      // Create form data for file upload
+      const bookingFormData = new FormData();
+
+      // Add product info
+      bookingFormData.append('productName', formData.deviceType);
+      bookingFormData.append('model', formData.deviceModel);
+      bookingFormData.append('modelNumber', formData.modelNumber || '');
+      bookingFormData.append('brand', formData.deviceBrand);
+
+      // Add repair info
+      bookingFormData.append('repairDescription', formData.issueDescription);
+      bookingFormData.append('customerId', user.id.toString());
+
+      // Add appointment info
+      bookingFormData.append('date', formattedDate);
+      bookingFormData.append('time', formData.time);
+      bookingFormData.append('additionalNotes', formData.additionalNotes || '');
+
+      // Add product image if available
+      if (formData.productImage) {
+        bookingFormData.append('productImage', formData.productImage);
+      }
+
+      // Send to backend
+      const response = await axios.post(
+        'http://localhost:5000/api/bookings',
+        bookingFormData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      console.log('Booking response:', response.data);
+
+      // Navigate to confirmation page with booking details and backend response
+      navigate('/booking-confirmation', {
+        state: {
+          booking: {
+            ...formData,
+            bookingReference: response.data.bookingReference,
+            jobId: response.data.jobId,
+            productId: response.data.productId,
+            bookingId: response.data.bookingId,
+            modelNumber: formData.modelNumber
+          }
+        }
+      });
+
+    } catch (err: any) {
+      console.error('Booking error:', err);
+      // Handle the specific conflict error from the backend
+      if (err.response && err.response.status === 409) {
+        setError('This time slot is already booked. Please select a different time.');
+      } else {
+        setError(err?.response?.data?.message || 'Failed to create booking. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Validation for the current step
   const isCurrentStepValid = () => {
     switch (currentStep) {
@@ -156,33 +255,19 @@ const NewBookingPage: React.FC = () => {
         return !!formData.issueDescription;
       case 2: // Schedule Appointment
         return !!formData.date && !!formData.time;
+      case 3: // Review
+        return termsAccepted;
       default:
         return true;
     }
   };
-  
-  // Render the step content based on the current step
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 0:
-        return renderDeviceInformationStep();
-      case 1:
-        return renderProblemDescriptionStep();
-      case 2:
-        return renderScheduleStep();
-      case 3:
-        return renderReviewStep();
-      default:
-        return null;
-    }
-  };
-  
+
   // Render the device information step
   const renderDeviceInformationStep = () => {
     return (
       <div>
         <h3 className="text-lg font-bold text-text mb-4">Select Your Device Type</h3>
-        
+
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6">
           {deviceTypes.map((device) => (
             <div
@@ -201,7 +286,7 @@ const NewBookingPage: React.FC = () => {
             </div>
           ))}
         </div>
-        
+
         <div className="space-y-4">
           <Input
             id="device-brand"
@@ -211,7 +296,7 @@ const NewBookingPage: React.FC = () => {
             placeholder="e.g., Apple, Samsung, Dell"
             required
           />
-          
+
           <Input
             id="device-model"
             label="Device Model"
@@ -220,24 +305,59 @@ const NewBookingPage: React.FC = () => {
             placeholder="e.g., iPhone 13, Galaxy S22, XPS 15"
             required
           />
+
+          <Input
+            id="model-number"
+            label="Model Number (If available)"
+            value={formData.modelNumber}
+            onChange={(e) => updateFormData('modelNumber', e.target.value)}
+            placeholder="e.g., A2633, SM-S901U"
+          />
         </div>
       </div>
     );
   };
-  
-  // Render the problem description step
+
+  // Render the schedule step
+  const renderScheduleStep = () => {
+    return (
+      <div>
+        <h3 className="text-lg font-bold text-text mb-4">Schedule Your Appointment</h3>
+        <div className="space-y-4">
+          <Input
+            id="appointment-date"
+            label="Select Date"
+            type="date"
+            value={formData.date}
+            onChange={(e) => handleDateSelect(e.target.value)}
+            required
+          />
+          <Input
+            id="appointment-time"
+            label="Select Time"
+            type="time"
+            value={formData.time}
+            onChange={(e) => handleTimeSelect(e.target.value)}
+            required
+          />
+        </div>
+      </div>
+    );
+  };
+
+  // Render the problem description step with file upload
   const renderProblemDescriptionStep = () => {
     const selectedDeviceType = formData.deviceType;
     const issues = commonIssues[selectedDeviceType as keyof typeof commonIssues] || [];
-    
+
     return (
       <div>
         <h3 className="text-lg font-bold text-text mb-4">What's the problem with your device?</h3>
-        
+
         {issues.length > 0 && (
           <div className="mb-6">
             <p className="text-text-secondary mb-2">Common issues:</p>
-            
+
             <div className="flex flex-wrap gap-2">
               {issues.map((issue, index) => (
                 <div
@@ -255,7 +375,7 @@ const NewBookingPage: React.FC = () => {
             </div>
           </div>
         )}
-        
+
         <div className="space-y-4">
           <div className="mb-4">
             <label htmlFor="issueDescription" className="form-label">
@@ -271,167 +391,124 @@ const NewBookingPage: React.FC = () => {
               required
             ></textarea>
           </div>
-          
+
           <div>
             <p className="form-label">Add photos (optional)</p>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <div className="flex justify-center mb-3">
-                <Camera size={36} className="text-text-secondary" />
-              </div>
+              {imagePreview ? (
+                <div className="mb-4">
+                  <img 
+                    src={imagePreview} 
+                    alt="Device preview" 
+                    className="max-h-48 mx-auto rounded-md" 
+                  />
+                </div>
+              ) : (
+                <div className="flex justify-center mb-3">
+                  <Camera size={36} className="text-text-secondary" />
+                </div>
+              )}
               <p className="text-text-secondary mb-2">
                 Upload photos of the device or damage
               </p>
               <p className="text-sm text-text-secondary mb-4">
                 This helps our technicians better understand the issue
               </p>
-              <Button
-                variant="outline"
-                size="sm"
-                leftIcon={<Upload size={16} />}
-              >
-                Upload Photos
-              </Button>
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
+                <span className="inline-flex items-center px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary hover:text-white transition-colors">
+                  <Upload size={16} className="mr-2" />
+                  {imagePreview ? 'Change Photo' : 'Upload Photos'}
+                </span>
+              </label>
             </div>
           </div>
         </div>
       </div>
     );
   };
-  
-  // Render the schedule step
-  const renderScheduleStep = () => {
-    return (
-      <div>
-        <h3 className="text-lg font-bold text-text mb-4">Choose Appointment Date & Time</h3>
-        
-        <div className="space-y-6">
-          <div>
-            <p className="form-label flex items-center mb-3">
-              <Calendar size={16} className="mr-2" />
-              Select a Date
-            </p>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {availableTimeSlots.map((slot) => (
-                <div
-                  key={slot.id}
-                  className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                    formData.date === slot.date
-                      ? 'border-primary bg-primary bg-opacity-5'
-                      : 'border-gray-200 hover:border-primary-light'
-                  }`}
-                  onClick={() => handleDateSelect(slot.date)}
-                >
-                  <p className="font-medium text-text">
-                    {format(new Date(slot.date), 'EEEE, MMM d')}
-                  </p>
-                  <p className="text-sm text-text-secondary">
-                    {slot.times.length} available slots
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          {formData.date && (
-            <div>
-              <p className="form-label flex items-center mb-3">
-                <Clock size={16} className="mr-2" />
-                Select a Time
-              </p>
-              
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {availableTimeSlots
-                  .find((slot) => slot.date === formData.date)
-                  ?.times.map((time, index) => (
-                    <div
-                      key={index}
-                      className={`p-2 rounded-lg border-2 cursor-pointer transition-all text-center ${
-                        formData.time === time
-                          ? 'border-primary bg-primary bg-opacity-5'
-                          : 'border-gray-200 hover:border-primary-light'
-                      }`}
-                      onClick={() => handleTimeSelect(time)}
-                    >
-                      <p className="font-medium text-text">{time}</p>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-          
-          <div>
-            <label htmlFor="additionalNotes" className="form-label flex items-center">
-              <MessageCircle size={16} className="mr-2" />
-              Additional Notes (Optional)
-            </label>
-            <textarea
-              id="additionalNotes"
-              rows={3}
-              value={formData.additionalNotes}
-              onChange={(e) => updateFormData('additionalNotes', e.target.value)}
-              placeholder="Any special requests or information we should know..."
-              className="form-input"
-            ></textarea>
-          </div>
-        </div>
-      </div>
-    );
-  };
-  
-  // Render the review step
+
+  // Render the review step with terms and conditions
   const renderReviewStep = () => {
     const selectedDevice = deviceTypes.find((d) => d.id === formData.deviceType);
     const selectedDate = formData.date 
       ? format(new Date(formData.date), 'EEEE, MMMM d, yyyy')
       : '';
-    
+
     return (
       <div>
         <h3 className="text-lg font-bold text-text mb-4">Review Your Booking Details</h3>
-        
+
+        {error && (
+          <div className="bg-error-light text-error p-4 rounded-lg mb-6 flex items-center">
+            <AlertCircle className="mr-2" size={20} />
+            <span>{error}</span>
+          </div>
+        )}
+
         <div className="space-y-6">
           <Card padding="sm" className="border border-gray-200">
             <h4 className="font-medium text-text mb-3">Device Information</h4>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-text-secondary">Device Type</p>
                 <p className="font-medium text-text">{selectedDevice?.name || formData.deviceType}</p>
               </div>
-              
+
               <div>
                 <p className="text-sm text-text-secondary">Brand</p>
                 <p className="font-medium text-text">{formData.deviceBrand}</p>
               </div>
-              
+
               <div>
                 <p className="text-sm text-text-secondary">Model</p>
                 <p className="font-medium text-text">{formData.deviceModel}</p>
               </div>
+
+              <div>
+                <p className="text-sm text-text-secondary">Model Number</p>
+                <p className="font-medium text-text">{formData.modelNumber || 'Not provided'}</p>
+              </div>
             </div>
+
+            {imagePreview && (
+              <div className="mt-4">
+                <p className="text-sm text-text-secondary mb-2">Device Photo</p>
+                <img 
+                  src={imagePreview} 
+                  alt="Device" 
+                  className="h-32 w-auto rounded-md border border-gray-200" 
+                />
+              </div>
+            )}
           </Card>
-          
+
           <Card padding="sm" className="border border-gray-200">
             <h4 className="font-medium text-text mb-3">Issue Description</h4>
             <p className="text-text">{formData.issueDescription}</p>
           </Card>
-          
+
           <Card padding="sm" className="border border-gray-200">
             <h4 className="font-medium text-text mb-3">Appointment Details</h4>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-text-secondary">Date</p>
                 <p className="font-medium text-text">{selectedDate}</p>
               </div>
-              
+
               <div>
                 <p className="text-sm text-text-secondary">Time</p>
                 <p className="font-medium text-text">{formData.time}</p>
               </div>
             </div>
-            
+
             {formData.additionalNotes && (
               <div className="mt-3">
                 <p className="text-sm text-text-secondary">Additional Notes</p>
@@ -439,7 +516,7 @@ const NewBookingPage: React.FC = () => {
               </div>
             )}
           </Card>
-          
+
           <Card padding="sm" className="border border-gray-200 bg-success-light">
             <div className="flex items-start">
               <CheckCircle size={24} className="text-success mr-3 flex-shrink-0" />
@@ -451,12 +528,14 @@ const NewBookingPage: React.FC = () => {
               </div>
             </div>
           </Card>
-          
+
           <div className="flex items-start">
             <input
               type="checkbox"
               id="terms"
               className="h-4 w-4 mt-1 text-primary border-gray-300 rounded focus:ring-primary"
+              checked={termsAccepted}
+              onChange={(e) => setTermsAccepted(e.target.checked)}
               required
             />
             <label htmlFor="terms" className="ml-2 block text-sm text-text-secondary">
@@ -474,14 +553,14 @@ const NewBookingPage: React.FC = () => {
       </div>
     );
   };
-  
+
   return (
     <div className="page-container">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-text font-heading">Book a Repair</h1>
         <p className="text-text-secondary">Schedule a repair service for your electronic device</p>
       </div>
-      
+
       {/* Progress Steps */}
       <div className="mb-8">
         <div className="hidden sm:block">
@@ -521,7 +600,7 @@ const NewBookingPage: React.FC = () => {
             ))}
           </div>
         </div>
-        
+
         <div className="sm:hidden">
           <div className="flex justify-between mb-2">
             <p className="text-sm font-medium text-text">Step {currentStep + 1} of {steps.length}</p>
@@ -535,12 +614,15 @@ const NewBookingPage: React.FC = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Form */}
       <Card className="mb-8">
-        {renderStepContent()}
+        {currentStep === 0 && renderDeviceInformationStep()}
+        {currentStep === 1 && renderProblemDescriptionStep()}
+        {currentStep === 2 && renderScheduleStep()}
+        {currentStep === 3 && renderReviewStep()}
       </Card>
-      
+
       {/* Navigation Buttons */}
       <div className="flex justify-between">
         <Button
@@ -551,7 +633,7 @@ const NewBookingPage: React.FC = () => {
         >
           Back
         </Button>
-        
+
         {currentStep < steps.length - 1 ? (
           <Button
             variant="primary"
@@ -565,6 +647,7 @@ const NewBookingPage: React.FC = () => {
           <Button
             variant="primary"
             onClick={handleSubmit}
+            isLoading={isSubmitting}
           >
             Confirm Booking
           </Button>

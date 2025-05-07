@@ -15,6 +15,8 @@ import NewBookingPage from './pages/booking/NewBookingPage';
 import BookingConfirmationPage from './pages/booking/BookingConfirmationPage';
 import ProfilePage from './pages/account/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
+import VerifyCustomerPage from './pages/auth/VerifyCustomerPage';// Ensure this file exists in the specified path or adjust the path
+import InvoiceDetailsPage from './pages/invoice/InvoiceDetailsPage';
 
 function App() {
   return (
@@ -28,6 +30,7 @@ function App() {
             <Route path="signup" element={<SignupPage />} />
             <Route path="forgot-password" element={<ForgotPasswordPage />} />
             <Route path="repair-status" element={<RepairStatusPage />} />
+            <Route path="verify-account" element={<VerifyCustomerPage />} />
             
             {/* Protected Routes */}
             <Route path="dashboard" element={
@@ -48,6 +51,11 @@ function App() {
             <Route path="profile" element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            } />
+            <Route path="/invoice/:jobId" element={
+              <ProtectedRoute>
+                <InvoiceDetailsPage />
               </ProtectedRoute>
             } />
             

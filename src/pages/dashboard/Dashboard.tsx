@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import Card from '../../components/common/Card';
 import { Link } from 'react-router-dom';
-import { Clock, Calendar, Wrench, CheckCircle, AlertCircle, Eye, ShieldCheck } from 'lucide-react';
+import { Clock, Calendar, Wrench, CheckCircle, AlertCircle, Eye, ShieldCheck, Smartphone } from 'lucide-react';
 import axios from 'axios';
 
 // Update the Job interface to match the exact response from backend
@@ -85,6 +85,15 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Format handover date helper function
+  const formatHandoverDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch (e) {
+      return 'Invalid date';
+    }
+  };
+
   // Function to get user's full name or username
   const getUserDisplayName = () => {
     if (user?.firstName && user?.lastName) {
@@ -96,6 +105,17 @@ const Dashboard: React.FC = () => {
     } else {
       return 'Customer';
     }
+  };
+
+  // Helper function to get status info
+  const getStatusInfo = (status: string) => {
+    const statusMap: { [key: string]: { text: string; color: string } } = {
+      'completed': { text: 'Completed', color: 'text-success' },
+      'in progress': { text: 'In Progress', color: 'text-primary' },
+      'ready for pickup': { text: 'Ready for Pickup', color: 'text-success' },
+      'pending': { text: 'Pending', color: 'text-warning' },
+    };
+    return statusMap[status.toLowerCase()] || { text: 'Unknown', color: 'text-gray-500' };
   };
 
   if (isLoading) {
@@ -121,6 +141,13 @@ const Dashboard: React.FC = () => {
      job.repair_status.toLowerCase() === 'ready for pickup')
   );
 
+  const activeJobs = jobs.filter(job => 
+    job.repair_status && 
+    (job.repair_status.toLowerCase() === 'pending' || 
+     job.repair_status.toLowerCase() === 'in progress' || 
+     job.repair_status.toLowerCase() === 'ready for pickup')
+  );
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
@@ -132,41 +159,132 @@ const Dashboard: React.FC = () => {
         </p>
       </div>
       
+      {/* Dashboard Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Summary Cards */}
-        <Card>
-          <div className="flex items-center mb-4">
-            <div className="bg-warning-light p-3 rounded-full mr-4">
-              <Clock className="h-6 w-6 text-warning" />
+        {/* Active Repairs Box */}
+        <Card className="bg-primary text-white">
+          <div className="flex flex-col">
+            <div className="flex items-center mb-3">
+              <div className="p-3 bg-white bg-opacity-20 rounded-full mr-4">
+                <Smartphone size={24} />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white text-opacity-90">Active Repairs</p>
+                <h3 className="text-2xl font-bold">{activeJobs.length}</h3>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold">Pending</h3>
-              <p className="text-3xl font-bold">{pendingJobs.length}</p>
+            
+            <div className="mt-2 text-sm text-white text-opacity-80 space-y-1">
+              {activeJobs.length > 0 ? (
+                <>
+                  <div className="flex justify-between">
+                    <span>Booking Pending:</span>
+                    <span>
+                      {activeJobs.filter(job => job.repair_status === 'Booking Pending').length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>In Progress:</span>
+                    <span>
+                      {activeJobs.filter(job => job.repair_status === 'In Progress').length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Ready for Pickup:</span>
+                    <span>
+                      {activeJobs.filter(job => job.repair_status?.toLowerCase() === 'completed').length}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <p>No active repairs</p>
+              )}
             </div>
           </div>
         </Card>
         
-        <Card>
-          <div className="flex items-center mb-4">
-            <div className="bg-primary-light p-3 rounded-full mr-4">
-              <Wrench className="h-6 w-6 text-primary" />
+        {/* Completed Repairs Box */}
+        <Card className="bg-success text-white">
+          <div className="flex flex-col">
+            <div className="flex items-center mb-3">
+              <div className="p-3 bg-white bg-opacity-20 rounded-full mr-4">
+                <CheckCircle size={24} />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white text-opacity-90">Completed Repairs</p>
+                <h3 className="text-2xl font-bold">{completedJobs.length}</h3>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold">In Progress</h3>
-              <p className="text-3xl font-bold">{inProgressJobs.length}</p>
-            </div>
+            
+            {completedJobs.length > 0 && (
+              <div className="mt-2 text-sm text-white text-opacity-80">
+                <div className="flex justify-between items-center">
+                  <span>Last completed:</span>
+                  <span>
+                    {completedJobs.length > 0 && completedJobs[0].handover_date ? 
+                      new Date(completedJobs[0].handover_date).toLocaleDateString() : 
+                      'N/A'}
+                  </span>
+                </div>
+                
+                <div className="mt-2 pt-2 border-t border-white border-opacity-20">
+                  <div className="flex items-center">
+                    <ShieldCheck size={16} className="mr-2" />
+                    <span>
+                      {jobs.filter(job => job.warranty_eligible === 1).length} device(s) under warranty
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </Card>
         
-        <Card>
-          <div className="flex items-center mb-4">
-            <div className="bg-success-light p-3 rounded-full mr-4">
-              <CheckCircle className="h-6 w-6 text-success" />
+        {/* Next Appointment Box */}
+        <Card className="bg-accent text-white">
+          <div className="flex flex-col">
+            <div className="flex items-center mb-3">
+              <div className="p-3 bg-white bg-opacity-20 rounded-full mr-4">
+                <Calendar size={24} />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white text-opacity-90">Next Appointment</p>
+                <h3 className="text-lg font-bold truncate">
+                  {activeJobs.length > 0 && activeJobs[0].handover_date
+                    ? formatHandoverDate(activeJobs[0].handover_date)
+                    : 'No upcoming appointments'}
+                </h3>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold">Completed</h3>
-              <p className="text-3xl font-bold">{completedJobs.length}</p>
-            </div>
+            
+            {activeJobs.length > 0 && activeJobs[0].handover_date && (
+              <div className="mt-2 space-y-2 text-sm text-white text-opacity-80">
+                <div className="flex items-center">
+                  <Clock size={16} className="mr-2" />
+                  <span>
+                    {new Date(activeJobs[0].handover_date).toLocaleDateString()} at{' '}
+                    {new Date(activeJobs[0].handover_date).toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </span>
+                </div>
+                
+                <div className="flex items-center">
+                  <Smartphone size={16} className="mr-2" />
+                  <span className="truncate">
+                    {activeJobs[0].product_name} {activeJobs[0].model}
+                  </span>
+                </div>
+                
+                <div className="flex items-center">
+                  <div className={`w-2 h-2 rounded-full mr-2 ${getStatusInfo(activeJobs[0].repair_status).color.replace('text-', 'bg-')}`}></div>
+                  <span>
+                    {getStatusInfo(activeJobs[0].repair_status).text}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </Card>
       </div>
