@@ -158,6 +158,22 @@ const MySalary = () => {
     }
   };
 
+  // New function to categorize monthly salary
+  const getSalaryCategory = (amount: number) => {
+    if (amount >= 100000) return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
+    if (amount >= 75000) return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
+    if (amount >= 50000) return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
+    return "bg-gray-100 text-gray-800 dark:bg-gray-800/60 dark:text-gray-300";
+  };
+
+  // Function to get salary category label
+  const getSalaryCategoryLabel = (amount: number) => {
+    if (amount >= 100000) return "High";
+    if (amount >= 75000) return "Above Average";
+    if (amount >= 50000) return "Average";
+    return "Entry";
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
@@ -333,8 +349,8 @@ const MySalary = () => {
                       <th className="px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-semibold tracking-wider">
                         Status
                       </th>
-                      <th className="px-4 py-3 text-gray-700 dark:text-gray-300 font-semibold tracking-wider">
-                        Actions
+                      <th className="px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-semibold tracking-wider">
+                        Category
                       </th>
                     </tr>
                   </thead>
@@ -347,7 +363,13 @@ const MySalary = () => {
                           <td className="px-4 py-3 text-gray-800 dark:text-gray-200 font-medium">
                             <div className="flex items-center">
                               <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                              {getMonthName(salary.Payment_Date)}, {new Date(salary.Payment_Date).getDate()}
+                              <button 
+                                onClick={() => toggleRowExpansion(index)} 
+                                className="hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none"
+                              >
+                                {getMonthName(salary.Payment_Date)}, {new Date(salary.Payment_Date).getDate()}
+                                <ChevronDown className={`inline-block h-4 w-4 ml-1 transition-transform ${expandedRow === index ? 'rotate-180' : ''}`} />
+                              </button>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-right text-gray-800 dark:text-gray-200">
@@ -370,23 +392,10 @@ const MySalary = () => {
                               {salary.Payment_Status || "Paid"}
                             </span>
                           </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center space-x-2">
-                              <button
-                                onClick={() => downloadPayslip(salary.Payment_Date)}
-                                className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                                title="Download Payslip"
-                              >
-                                <Download className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => toggleRowExpansion(index)}
-                                className={`p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-transform ${expandedRow === index ? 'rotate-180' : ''}`}
-                                title="View Details"
-                              >
-                                <ChevronDown className="h-4 w-4" />
-                              </button>
-                            </div>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSalaryCategory(salary.Total_Salary)}`}>
+                              {getSalaryCategoryLabel(salary.Total_Salary)}
+                            </span>
                           </td>
                         </tr>
                         
@@ -495,7 +504,7 @@ const MySalary = () => {
                                   onClick={() => downloadPayslip(salary.Payment_Date)}
                                 >
                                   <Download className="h-4 w-4 mr-1" />
-                                  Download Full Payslip
+                                  Download Payslip
                                 </button>
                               </div>
                             </td>

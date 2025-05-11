@@ -50,7 +50,8 @@ const MyJobs: React.FC = () => {
     pending: 0,
     inProgress: 0,
     completed: 0,
-    cannotRepair: 0
+    cannotRepair: 0,
+    paid: 0
   });
 
   useEffect(() => {
@@ -77,7 +78,8 @@ const MyJobs: React.FC = () => {
           pending: response.data.filter((job: Job) => job.repair_status === "Pending").length,
           inProgress: response.data.filter((job: Job) => job.repair_status === "In Progress").length,
           completed: response.data.filter((job: Job) => job.repair_status === "Completed").length,
-          cannotRepair: response.data.filter((job: Job) => job.repair_status === "Cannot Repair").length
+          cannotRepair: response.data.filter((job: Job) => job.repair_status === "Cannot Repair").length,
+          paid: response.data.filter((job: Job) => job.repair_status === "Paid").length
         };
         setJobStats(stats);
       } catch (error) {
@@ -119,7 +121,44 @@ const MyJobs: React.FC = () => {
     setIsFiltering(!!searchTerm || !!statusFilter);
   }, [jobs, searchTerm, statusFilter]);
 
+  // Add status workflow validation and dynamic status options
+
+  // First, let's update the isTerminalStatus function to also check for "Paid" status
+  const isTerminalStatus = (status: string) => {
+    return status === "Completed" || status === "Cannot Repair" || status === "Paid";
+  };
+
+  // Then, let's update the getAvailableStatuses function to include the Paid status option
+  const getAvailableStatuses = (currentStatus: string) => {
+    switch (currentStatus) {
+      case "Pending":
+        return ["Pending", "In Progress", "Cannot Repair"];
+      case "In Progress":
+        return ["In Progress", "Completed"];
+      case "Completed":
+        return ["Completed", "Paid"]; // Completed can move to Paid
+      case "Paid":
+        return ["Paid"]; // Terminal state
+      case "Cannot Repair":
+        return ["Cannot Repair", "Paid"]; // Cannot Repair can also be paid
+      default:
+        return ["Pending", "In Progress", "Completed", "Cannot Repair"];
+    }
+  };
+
+  // Update the handleStatusChange function to validate workflow
   const handleStatusChange = async (jobId: string, newStatus: string) => {
+    // Get the current job status
+    const currentJob = jobs.find(job => job.job_id === jobId);
+    if (!currentJob) return;
+    
+    // Check if the new status is allowed based on current status
+    const availableStatuses = getAvailableStatuses(currentJob.repair_status);
+    if (!availableStatuses.includes(newStatus)) {
+      setError(`Cannot change status from ${currentJob.repair_status} to ${newStatus}. Invalid workflow.`);
+      return;
+    }
+
     setUpdatingJobId(jobId);
     try {
       await axios.put(`http://localhost:5000/api/jobs/update-status/${jobId}`, {
@@ -139,7 +178,8 @@ const MyJobs: React.FC = () => {
         pending: updatedJobs.filter((job) => job.repair_status === "Pending").length,
         inProgress: updatedJobs.filter((job) => job.repair_status === "In Progress").length,
         completed: updatedJobs.filter((job) => job.repair_status === "Completed").length,
-        cannotRepair: updatedJobs.filter((job) => job.repair_status === "Cannot Repair").length
+        cannotRepair: updatedJobs.filter((job) => job.repair_status === "Cannot Repair").length,
+        paid: updatedJobs.filter((job) => job.repair_status === "Paid").length
       };
       setJobStats(stats);
 
@@ -168,7 +208,7 @@ const MyJobs: React.FC = () => {
     setStatusFilter("");
   };
 
-  // Helper function to get status badge style
+  // Update the getStatusBadgeClass to include a style for "Paid" status
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case "Pending":
@@ -177,6 +217,8 @@ const MyJobs: React.FC = () => {
         return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
       case "Completed":
         return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
+      case "Paid":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300";
       case "Cannot Repair":
         return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
       default:
@@ -184,6 +226,7 @@ const MyJobs: React.FC = () => {
     }
   };
 
+  // Update the getStatusIcon function to include an icon for "Paid" status
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "Pending":
@@ -192,6 +235,8 @@ const MyJobs: React.FC = () => {
         return <RefreshCw className="h-4 w-4 mr-1" />;
       case "Completed":
         return <CheckCircle className="h-4 w-4 mr-1" />;
+      case "Paid":
+        return <CheckCircle className="h-4 w-4 mr-1" />; // You could import a Dollar/Payment icon instead
       case "Cannot Repair":
         return <XCircle className="h-4 w-4 mr-1" />;
       default:
@@ -285,6 +330,18 @@ const MyJobs: React.FC = () => {
               </div>
             </div>
           </div>
+          
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Paid</p>
+                <p className="text-2xl font-bold text-gray-800 dark:text-gray-100 mt-1">{jobStats.paid}</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                <CheckCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Success Message */}
@@ -332,6 +389,7 @@ const MyJobs: React.FC = () => {
                   <option value="Pending">Pending</option>
                   <option value="In Progress">In Progress</option>
                   <option value="Completed">Completed</option>
+                  <option value="Paid">Paid</option>
                   <option value="Cannot Repair">Cannot Repair</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
@@ -474,21 +532,65 @@ const MyJobs: React.FC = () => {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-col space-y-2">
-                          <div className={`px-2 py-1 rounded-md text-xs font-medium inline-flex items-center ${getStatusBadgeClass(job.repair_status)}`}>
+                          <div className={`px-2 py-1 rounded-md text-xs font-medium inline-flex items-center 
+                            ${getStatusBadgeClass(job.repair_status)}
+                            ${isTerminalStatus(job.repair_status) ? 'ring-1 ring-gray-300 dark:ring-gray-600' : ''}
+                          `}>
                             {getStatusIcon(job.repair_status)}
                             {job.repair_status}
+                            {isTerminalStatus(job.repair_status) && (
+                              <span className="ml-1 text-xs">{job.repair_status === "Paid" ? "• Finalized" : "• Final"}</span>
+                            )}
                           </div>
-                          <select
-                            value={job.repair_status}
-                            onChange={(e) => handleStatusChange(job.job_id, e.target.value)}
-                            disabled={updatingJobId === job.job_id}
-                            className="text-xs mt-1 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded px-2 py-1"
-                          >
-                            <option value="Pending">Pending</option>
-                            <option value="Cannot Repair">Cannot Repair</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Completed">Completed</option>
-                          </select>
+                          
+                          {/* Only show status dropdown if not Paid */}
+                          {job.repair_status !== "Paid" && (
+                            <>
+                              <select
+                                value={job.repair_status}
+                                onChange={(e) => handleStatusChange(job.job_id, e.target.value)}
+                                disabled={updatingJobId === job.job_id || isTerminalStatus(job.repair_status)}
+                                className={`text-xs mt-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 ${
+                                  isTerminalStatus(job.repair_status) 
+                                    ? "opacity-60 cursor-not-allowed text-gray-500 dark:text-gray-400" 
+                                    : "text-gray-700 dark:text-gray-300"
+                                }`}
+                              >
+                                {getAvailableStatuses(job.repair_status).map(status => (
+                                  <option key={status} value={status}>
+                                    {status}
+                                  </option>
+                                ))}
+                              </select>
+                              
+                              {/* Helper text */}
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {job.repair_status === "Pending" && (
+                                  <p>→ In Progress or Cannot Repair</p>
+                                )}
+                                {job.repair_status === "In Progress" && (
+                                  <p>→ Completed when done</p>
+                                )}
+                                {job.repair_status === "Completed" && (
+                                  <p>→ Mark as Paid when payment received</p>
+                                )}
+                                {job.repair_status === "Cannot Repair" && (
+                                  <p>→ Mark as Paid when payment received</p>
+                                )}
+                                {job.repair_status === "Paid" && (
+                                  <p>Job finalized</p>
+                                )}
+                              </div>
+                            </>
+                          )}
+                          
+                          {/* When Paid, just show a confirmation message */}
+                          {job.repair_status === "Paid" && (
+                            <div className="text-xs flex items-center text-purple-600 dark:text-purple-400 mt-1">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Payment received and processed
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">

@@ -22,14 +22,19 @@ const ViewInventory = () => {
     setError('');
     try {
       const response = await axios.get('http://localhost:5000/api/inventory/inventory-status/all');
-      setInventoryData(
-        response.data.map((item: any) => ({
-          inventoryId: item.Inventory_ID,
-          productName: item.product_name,
-          totalQuantity: item.totalQuantity,
-          stockStatus: item.stockStatus,
-        }))
-      );
+      const inventoryItems = response.data.map((item: any) => ({
+        inventoryId: item.Inventory_ID,
+        productName: item.product_name,
+        totalQuantity: item.totalQuantity,
+        stockStatus: item.stockStatus,
+      }));
+      
+      setInventoryData(inventoryItems);
+      
+      // Filter items that need to be purchased and store in localStorage
+      const itemsToBuy = inventoryItems.filter((item: InventoryItem) => item.stockStatus === 'Buy Items');
+      localStorage.setItem('inventoryAlerts', JSON.stringify(itemsToBuy));
+      
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error fetching inventory data');
     } finally {

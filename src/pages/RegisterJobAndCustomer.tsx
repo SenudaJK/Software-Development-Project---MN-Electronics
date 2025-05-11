@@ -16,27 +16,31 @@ import {
   Info,
   CheckCircle,
 } from "lucide-react";
+import { useLocation } from "react-router-dom"; // Add this import
 
 const RegisterJobAndCustomer = () => {
+  const location = useLocation(); // Access location state
+  const preFilledData = location.state || {}; // Get pre-filled data
+
   const [customer, setCustomer] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phoneNumbers: "", // Comma-separated phone numbers
+    firstName: preFilledData.customer?.firstName || "",
+    lastName: preFilledData.customer?.lastName || "",
+    email: preFilledData.customer?.email || "",
+    phoneNumbers: preFilledData.customer?.phoneNumbers || "",
+  });
+
+  const [product, setProduct] = useState({
+    productName: preFilledData.product?.productName || "",
+    model: preFilledData.product?.model || "",
+    modelNumber: preFilledData.product?.modelNumber || "",
+    productImage: null as string | null,
   });
 
   const [job, setJob] = useState({
     repairDescription: "",
-    repairStatus: "Pending", // Default value is "Pending"
+    repairStatus: "Pending",
     handoverDate: "",
-    employeeID: "", // Assigned employee ID
-  });
-
-  const [product, setProduct] = useState({
-    productName: "",
-    model: "",
-    modelNumber: "",
-    productImage: null as string | null, // Update type to accept string (Cloudinary URL)
+    employeeID: "",
   });
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -56,7 +60,10 @@ const RegisterJobAndCustomer = () => {
   >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+  const [customerProducts, setCustomerProducts] = useState<any[]>([]);
+  const [showProductsModal, setShowProductsModal] = useState(false);
+  const [selectedCustomerProduct, setSelectedCustomerProduct] = useState<any>(null);
+
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
@@ -83,30 +90,37 @@ const RegisterJobAndCustomer = () => {
     
     setIsLoading(true);
     try {
+      // Use the new endpoint that returns both customer and their products
       const response = await axios.get(
-        `http://localhost:5000/api/customers?search=${customerSearch}`
+        `http://localhost:5000/api/jobCustomerProduct/searchCustomer?searchTerm=${customerSearch}`
       );
-      if (response.data.length > 0) {
-        const customerData = response.data[0];
-        setCustomer({
-          firstName: customerData.firstName,
-          lastName: customerData.lastName,
-          email: customerData.email,
-          phoneNumbers: customerData.phone_number || "",
-        });
-        setIsCustomerFound(true); // Mark customer as found
-        setError("");
-        setMessage("Customer found successfully!");
-      } else {
-        setIsCustomerFound(false); // Mark customer as not found
-        setError("No customer found with the given search term.");
+      
+      const { customer: customerData, products } = response.data;
+      
+      setCustomer({
+        firstName: customerData.firstName,
+        lastName: customerData.lastName,
+        email: customerData.email,
+        phoneNumbers: customerData.phoneNumbers || "",
+      });
+      
+      setCustomerProducts(products); // Store the customer's products
+      setIsCustomerFound(true);
+      setError("");
+      setMessage("Customer found successfully!");
+      
+      // If products were found, show a notification
+      if (products.length > 0) {
+        setMessage(`Customer found with ${products.length} registered products!`);
       }
     } catch (err: any) {
-      setIsCustomerFound(false); // Mark customer as not found
+      setIsCustomerFound(false);
       setError(
-        err.response?.data?.error ||
+        err.response?.data?.message ||
+          err.response?.data?.error ||
           "An error occurred while searching for customers."
       );
+      setCustomerProducts([]);
     } finally {
       setIsLoading(false);
     }
@@ -344,6 +358,27 @@ const RegisterJobAndCustomer = () => {
     setSearchType("general");
     setError("");
     setMessage("");
+    setCustomerProducts([]);
+    setSelectedCustomerProduct(null);
+  };
+
+  const selectExistingProduct = (product: any) => {
+    setProduct({
+      productName: product.product_name,
+      model: product.model,
+      modelNumber: product.model_number || "",
+      productImage: product.product_image || null,
+    });
+    
+    if (product.product_image) {
+      setImagePreview(product.product_image);
+    } else {
+      setImagePreview(null);
+    }
+    
+    setIsProductFound(true);
+    setSelectedCustomerProduct(product);
+    setShowProductsModal(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -359,7 +394,7 @@ const RegisterJobAndCustomer = () => {
       const formData = new FormData();
 
       let customerID = null;
-      let productID = null;
+      let productID = selectedCustomerProduct ? selectedCustomerProduct.product_id : null;
 
       // If customer is found via search, use the existing customerID
       if (isCustomerFound) {
@@ -374,14 +409,14 @@ const RegisterJobAndCustomer = () => {
         formData.append("email", customer.email);
         const phoneNumbersArray = customer.phoneNumbers
           .split(",")
-          .map((phone) => phone.trim());
-        phoneNumbersArray.forEach((phone) =>
+          .map((phone: string) => phone.trim());
+        phoneNumbersArray.forEach((phone: string) =>
           formData.append("phone_number[]", phone)
         );
       }
 
       // If product is found via search, use the existing productID
-      if (isProductFound) {
+      if (isProductFound && !productID) {
         let url = "http://localhost:5000/api/products?";
         let params = new URLSearchParams();
         
@@ -396,7 +431,7 @@ const RegisterJobAndCustomer = () => {
         const productData = response.data[0];
         productID = productData.product_id; // Corrected field name
         formData.append("product_name", productData.product_name); // Include product_name
-      } else {
+      } else if (!productID) {
         // Append product data if not found via search
         formData.append("product_name", product.productName);
         formData.append("model", product.model);
@@ -537,6 +572,83 @@ const RegisterJobAndCustomer = () => {
                   )}
                 </div>
               </div>
+
+              {isCustomerFound && customerProducts.length > 0 && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-lg dark:bg-blue-900/30 dark:border-blue-800">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <Package className="text-blue-500 mr-2 flex-shrink-0" size={16} />
+                      <p className="text-blue-800 dark:text-blue-300 text-sm font-medium">
+                        This customer has {customerProducts.length} registered product(s)
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowProductsModal(true)}
+                      className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
+                    >
+                      View Products
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Products Modal */}
+              {showProductsModal && (
+                <div className="fixed inset-0 z-50 overflow-y-auto">
+                  <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                    <div className="fixed inset-0 transition-opacity">
+                      <div className="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
+                    </div>
+                    <span className="hidden sm:inline-block sm:align-middle sm:h-screen"></span>&#8203;
+                    <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                      <div className="sm:flex sm:items-start">
+                        <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                          <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
+                            Customer Products
+                          </h3>
+                          <div className="mt-4 max-h-60 overflow-auto">
+                            {customerProducts.map((product) => (
+                              <div 
+                                key={product.product_id}
+                                className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 mb-2 flex items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                                onClick={() => selectExistingProduct(product)}
+                              >
+                                <div className="h-12 w-12 flex-shrink-0 bg-gray-100 dark:bg-gray-700 rounded overflow-hidden mr-3">
+                                  {product.product_image ? (
+                                    <img 
+                                      src={product.product_image} 
+                                      alt={product.product_name}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="h-full w-full flex items-center justify-center text-gray-400 dark:text-gray-500">
+                                      <Package size={20} />
+                                    </div>
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="font-medium text-gray-800 dark:text-gray-200">{product.product_name}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">{product.model} {product.model_number ? `(${product.model_number})` : ''}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                            <button
+                              type="button"
+                              onClick={() => setShowProductsModal(false)}
+                              className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm"
+                            >
+                              Close
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Customer Information */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">

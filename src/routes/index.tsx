@@ -28,6 +28,9 @@ import ViewJobUsedInventory from "../pages/ViewJobUsedInventory";
 import ViewAdvancePayments from "../pages/ViewAdvancePayments";
 import AdvanceInvoiceDetail from "../pages/AdvanceInvoiceDetail";
 import PurchaseItems from "../pages/PurchaseItems";
+import RegisterWarrantyClaim from "../pages/RegisterWarrantyClaim";
+import BookingDetail from "../pages/BookingDetail";
+import EditAccount from "../pages/EditAccount";
 
 const AppRoutes = () => {
   return (
@@ -60,6 +63,10 @@ const AppRoutes = () => {
       <Route path="/view-advance-invoice" element={<ViewAdvancePayments />} />
       <Route path="/advance-payment/:jobId" element={<AdvanceInvoiceDetail />} />
       <Route path="/purchase-items" element={<PurchaseItems />} />
+      <Route path="/view-job-used-inventory/:jobId" element={<ViewJobUsedInventory />} />
+      <Route path="/register-warranty-claim/:jobId" element={<RegisterWarrantyClaim />} />
+      <Route path="/bookings/:id" element={<BookingDetail />} />
+      <Route path="/account/edit" element={<EditAccount />} />
     </Routes>
   );
 };
