@@ -20,10 +20,17 @@ import {
   User,
   AlertCircle,
   Filter,
-  ChevronDown
+  ChevronDown,
+  Lock
 } from "lucide-react";
 
 const EmployeeTable = () => {
+  // Add this to track the current user's role
+  const [currentUserRole, setCurrentUserRole] = useState('');
+  
+  // Check if the current user is an owner
+  const isOwner = currentUserRole === 'owner';
+
   interface Employee {
     id: string;
     firstName: string;
@@ -66,6 +73,16 @@ const EmployeeTable = () => {
 
   // New state to track if form is being validated
   const [isValidating, setIsValidating] = useState(false);
+
+  // Get the current user's role from localStorage
+  useEffect(() => {
+    try {
+      const employeeData = JSON.parse(localStorage.getItem('employee') || '{}');
+      setCurrentUserRole(employeeData.role || '');
+    } catch (error) {
+      console.error('Error parsing employee data:', error);
+    }
+  }, []);
 
   // Client-side validation function that mirrors backend validation
   const validateEmployeeForm = (employee: Employee): { [key: string]: string } => {
@@ -270,13 +287,15 @@ const EmployeeTable = () => {
 
   // Handle Update Button Click
   const handleUpdateClick = async (employeeId: string) => {
+    // Check if user has owner role
+    if (!isOwner) {
+      setError('Only owners can edit employee information.');
+      return;
+    }
+
     try {
       setIsLoading(true);
       const response = await axios.get(`http://localhost:5000/api/employees/${employeeId}`);
-      
-      // Log the response from the server
-      console.log("Employee data from server:", response.data);
-      console.log("Employment type from server:", response.data.employment_type);
       
       setSelectedEmployee({
         id: response.data.id || "",
@@ -290,9 +309,6 @@ const EmployeeTable = () => {
         employmentType: response.data.employment_type || "", // Use employment_type from backend
       });
       
-      // Log the selected employee after setting state
-      console.log("Selected employee after state update:", selectedEmployee);
-      
       setIsDialogOpen(true);
     } catch (error: any) {
       console.error("Error fetching employee details:", error.response?.data?.message || error.message);
@@ -304,6 +320,12 @@ const EmployeeTable = () => {
 
   // Handle Delete Button Click
   const handleDeleteClick = (employeeId: string) => {
+    // Check if user has owner role
+    if (!isOwner) {
+      setError('Only owners can delete employees.');
+      return;
+    }
+
     setEmployeeToDelete(employeeId);
     setIsConfirmDialogOpen(true);
   };
@@ -541,13 +563,30 @@ const EmployeeTable = () => {
             
             <a
               href="/add-employee"
-              className="flex items-center px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
+                isOwner 
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                  : 'bg-gray-400 text-gray-50 cursor-not-allowed'
+              }`}
+              onClick={(e) => !isOwner && e.preventDefault()}
             >
-              <UserPlus className="mr-2 h-4 w-4" />
+              {isOwner ? (
+                <UserPlus className="mr-2 h-4 w-4" />
+              ) : (
+                <Lock className="mr-2 h-4 w-4" />
+              )}
               Add New Employee
             </a>
           </div>
         </div>
+
+        {/* Permission info for non-owners */}
+        {!isOwner && (
+          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md flex items-center text-blue-700 dark:text-blue-400">
+            <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+            <span>You are in view-only mode. Only owners can modify employee information.</span>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -893,17 +932,27 @@ const EmployeeTable = () => {
                           <div className="flex items-center justify-end space-x-2">
                             <button
                               onClick={() => handleUpdateClick(employee.id)}
-                              className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-                              title="Edit Employee"
+                              className={`p-2 rounded-lg transition-colors ${
+                                isOwner
+                                  ? 'bg-blue-500 text-white hover:bg-blue-600'
+                                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              }`}
+                              disabled={!isOwner}
+                              title={isOwner ? "Edit Employee" : "Only owners can edit employees"}
                             >
-                              <Edit2 className="h-4 w-4" />
+                              {isOwner ? <Edit2 className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
                             </button>
                             <button
                               onClick={() => handleDeleteClick(employee.id)}
-                              className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
-                              title="Delete Employee"
+                              className={`p-2 rounded-lg transition-colors ${
+                                isOwner
+                                  ? 'bg-red-500 text-white hover:bg-red-600'
+                                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              }`}
+                              disabled={!isOwner}
+                              title={isOwner ? "Delete Employee" : "Only owners can delete employees"}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              {isOwner ? <Trash2 className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
                             </button>
                           </div>
                         </td>
