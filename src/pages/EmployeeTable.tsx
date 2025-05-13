@@ -18,7 +18,6 @@ import {
   Phone,
   Calendar,
   User,
-  // Removed invalid import 'Id'
   AlertCircle,
   Filter,
   ChevronDown
@@ -62,20 +61,138 @@ const EmployeeTable = () => {
   const [roleStats, setRoleStats] = useState<{[key: string]: number}>({});
   const [typeStats, setTypeStats] = useState<{[key: string]: number}>({});
 
+  // Field-specific error states
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+
+  // New state to track if form is being validated
+  const [isValidating, setIsValidating] = useState(false);
+
+  // Client-side validation function that mirrors backend validation
+  const validateEmployeeForm = (employee: Employee): { [key: string]: string } => {
+    const errors: { [key: string]: string } = {};
+    
+    // First name validation
+    if (!employee.firstName) {
+      errors.firstName = "First name is mandatory";
+    } else if (!/^[a-zA-Z']+$/.test(employee.firstName)) {
+      errors.firstName = "First name should only contain letters and ' symbol";
+    } else if (employee.firstName.length > 50) {
+      errors.firstName = "First name should not exceed 50 characters";
+    }
+    
+    // Last name validation
+    if (!employee.lastName) {
+      errors.lastName = "Last name is mandatory";
+    } else if (!/^[a-zA-Z']+$/.test(employee.lastName)) {
+      errors.lastName = "Last name should only contain letters and ' symbol";
+    } else if (employee.lastName.length > 50) {
+      errors.lastName = "Last name should not exceed 50 characters";
+    }
+    
+    // Email validation
+    if (!employee.email) {
+      errors.email = "Email is mandatory";
+    } else if (!/^\S+@\S+\.\S+$/.test(employee.email)) {
+      errors.email = "Invalid email format";
+    } else if (employee.email.length > 100) {
+      errors.email = "Email should not exceed 100 characters";
+    }
+    
+    // Date of birth validation
+    if (!employee.dateOfBirth) {
+      errors.dateOfBirth = "Date of birth is mandatory";
+    } else {
+      const dob = moment(employee.dateOfBirth);
+      const now = moment();
+      const age = now.diff(dob, "years");
+      
+      if (!dob.isValid()) {
+        errors.dateOfBirth = "Invalid date format";
+      } else if (dob.isAfter(now)) {
+        errors.dateOfBirth = "Date of birth cannot be a future date";
+      } else if (age < 18) {
+        errors.dateOfBirth = "Employee must be at least 18 years old";
+      }
+    }
+    
+    // NIC validation
+    if (!employee.nic) {
+      errors.nic = "NIC is mandatory";
+    } else if (!/^\d{9}[vVxX]$|^\d{12}$/.test(employee.nic)) {
+      errors.nic = "Invalid NIC format";
+    } else {
+      const dateOfBirth = moment(employee.dateOfBirth);
+      if (dateOfBirth.isValid()) {
+        const year = dateOfBirth.year();
+        const yearString = year.toString();
+        
+        if (employee.nic.length === 12) {
+          // New NIC: First 4 digits must match the full birth year
+          if (employee.nic.substring(0, 4) !== yearString) {
+            errors.nic = "For new NICs, the first 4 digits must match the birth year";
+          }
+        } else if (employee.nic.length === 10) {
+          // Old NIC: First 2 digits must match the last 2 digits of the birth year
+          if (employee.nic.substring(0, 2) !== yearString.substring(2, 4)) {
+            errors.nic = "For old NICs, the first 2 digits must match the last 2 digits of the birth year";
+          }
+        }
+      }
+    }
+    
+    // Role validation
+    if (!employee.role) {
+      errors.role = "Role is mandatory";
+    } else if (!["technician", "owner"].includes(employee.role)) {
+      errors.role = "Role must be either 'technician' or 'owner'";
+    }
+    
+    // Employment type validation
+    if (!employee.employmentType) {
+      errors.employmentType = "Employment type is mandatory";
+    } else if (!["Full-Time", "Part-Time"].includes(employee.employmentType)) {
+      errors.employmentType = "Employment type must be either 'Full-Time' or 'Part-Time'";
+    }
+    
+    // Phone numbers validation
+    if (employee.phoneNumbers) {
+      const phones = employee.phoneNumbers
+        .split(',')
+        .map(phone => phone.trim())
+        .filter(phone => phone !== "");
+      
+      for (let phone of phones) {
+        if (!/^07\d{8}$/.test(phone)) {
+          errors.phoneNumbers = "Telephone number should contain 10 digits and start with 07";
+          break;
+        }
+      }
+    }
+    
+    return errors;
+  };
+
   // Fetch employees from the backend
   useEffect(() => {
     const fetchEmployees = async () => {
       setIsLoading(true);
       try {
         const response = await axios.get("http://localhost:5000/api/employees/all");
-        setEmployees(response.data);
-        setFilteredEmployees(response.data);
+        
+        // Transform the data to handle employment_type field
+        const transformedData = response.data.map((emp: any) => ({
+          ...emp,
+          employmentType: emp.employment_type // Add this line to map from backend field
+        }));
+        
+        setEmployees(transformedData);
+        setFilteredEmployees(transformedData);
         
         // Calculate stats
         const roles: {[key: string]: number} = {};
         const types: {[key: string]: number} = {};
         
-        response.data.forEach((emp: Employee) => {
+        transformedData.forEach((emp: Employee) => {
           // Count roles
           if (emp.role) {
             roles[emp.role] = (roles[emp.role] || 0) + 1;
@@ -156,6 +273,11 @@ const EmployeeTable = () => {
     try {
       setIsLoading(true);
       const response = await axios.get(`http://localhost:5000/api/employees/${employeeId}`);
+      
+      // Log the response from the server
+      console.log("Employee data from server:", response.data);
+      console.log("Employment type from server:", response.data.employment_type);
+      
       setSelectedEmployee({
         id: response.data.id || "",
         firstName: response.data.firstName || "",
@@ -165,8 +287,12 @@ const EmployeeTable = () => {
         role: response.data.role || "",
         email: response.data.email || "",
         phoneNumbers: response.data.phoneNumbers || "",
-        employmentType: response.data.employmentType || "",
+        employmentType: response.data.employment_type || "", // Use employment_type from backend
       });
+      
+      // Log the selected employee after setting state
+      console.log("Selected employee after state update:", selectedEmployee);
+      
       setIsDialogOpen(true);
     } catch (error: any) {
       console.error("Error fetching employee details:", error.response?.data?.message || error.message);
@@ -221,32 +347,90 @@ const EmployeeTable = () => {
   // Handle Save Button in Dialog
   const handleDialogSave = async () => {
     if (selectedEmployee) {
+      // Clear previous messages and errors
+      setError("");
+      setMessage("");
+      setFormErrors({});
+      setIsValidating(true);
+      
+      // Perform client-side validation first
+      const validationErrors = validateEmployeeForm(selectedEmployee);
+      
+      if (Object.keys(validationErrors).length > 0) {
+        // If there are validation errors, display them and don't submit
+        setFormErrors(validationErrors);
+        setError("Please fix the validation errors below.");
+        setIsValidating(false);
+        return;
+      }
+      
+      // Proceed with the API call if validation passes
+      setIsLoading(true);
+      
       try {
-        setIsLoading(true);
+        // Format data according to backend expectations
+        const phoneNumbersArray = selectedEmployee.phoneNumbers
+          .split(',')
+          .map(phone => phone.trim())
+          .filter(phone => phone !== "");
+        
         const payload = {
           ...selectedEmployee,
           dateOfBirth: moment(selectedEmployee.dateOfBirth).format("YYYY-MM-DD"),
-          phoneNumbers: selectedEmployee.phoneNumbers.split(",").map((phone) => phone.trim()),
-          employment_type: selectedEmployee.employmentType,
+          phoneNumbers: phoneNumbersArray,
+          employment_type: selectedEmployee.employmentType, // Map from frontend to backend field name
         };
-
+        
         const response = await axios.put(
           `http://localhost:5000/api/employees/${selectedEmployee.id}`,
           payload
         );
-
+        
         setMessage(response.data.message || "Employee updated successfully");
-        setError("");
         setIsDialogOpen(false);
 
         // Refresh the employee list
         const updatedEmployees = await axios.get("http://localhost:5000/api/employees/all");
-        setEmployees(updatedEmployees.data);
+        
+        // Transform the refreshed data
+        const transformedData = updatedEmployees.data.map((emp: any) => ({
+          ...emp,
+          employmentType: emp.employment_type
+        }));
+        
+        setEmployees(transformedData);
       } catch (error: any) {
-        setMessage("");
-        setError(error.response?.data?.message || "Error updating employee");
+        console.error("Error updating employee:", error);
+        
+        // Handle validation errors from the server
+        if (error.response?.data?.errors) {
+          const validationErrors = error.response.data.errors;
+          
+          // Create a mapping of field-specific errors
+          const newFormErrors: { [key: string]: string } = {};
+          
+          // Process each validation error
+          validationErrors.forEach((err: any) => {
+            // Map backend field names to frontend field names if needed
+            const fieldName = err.param === "employment_type" ? "employmentType" : err.param;
+            newFormErrors[fieldName] = err.msg;
+          });
+          
+          // Set field-specific errors
+          setFormErrors(newFormErrors);
+          
+          // Also set a general error message
+          setError("Please fix the validation errors below.");
+        } else if (error.response?.data?.message) {
+          // Handle specific error message from backend (like "Email or NIC already exists")
+          setError(error.response.data.message);
+        } else {
+          // Generic error
+          setError("Failed to update employee. Please try again.");
+        }
       } finally {
         setIsLoading(false);
+        setIsValidating(false);
       }
     }
   };
@@ -798,7 +982,7 @@ const EmployeeTable = () => {
                       >
                         <span className="sr-only">Next</span>
                         <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4-4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                         </svg>
                       </button>
                     </nav>
@@ -824,32 +1008,65 @@ const EmployeeTable = () => {
               </button>
             </div>
             
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                <div className="flex items-start">
+                  <AlertCircle className="h-5 w-5 text-red-500 dark:text-red-400 mr-2 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+                </div>
+              </div>
+            )}
+            
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 {/* First Name */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    First Name
+                    {formErrors.firstName && (
+                      <span className="text-red-500 dark:text-red-400 ml-1">*</span>
+                    )}
+                  </label>
                   <input
                     type="text"
                     value={selectedEmployee.firstName}
                     onChange={(e) =>
                       setSelectedEmployee({ ...selectedEmployee, firstName: e.target.value })
                     }
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-400"
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 
+                      ${formErrors.firstName 
+                        ? "border-red-500 focus:ring-red-500 dark:border-red-700" 
+                        : "border-gray-300 focus:ring-blue-500 dark:border-gray-600"}
+                      dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white`}
                   />
+                  {formErrors.firstName && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.firstName}</p>
+                  )}
                 </div>
 
                 {/* Last Name */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Last Name
+                    {formErrors.lastName && (
+                      <span className="text-red-500 dark:text-red-400 ml-1">*</span>
+                    )}
+                  </label>
                   <input
                     type="text"
                     value={selectedEmployee.lastName}
                     onChange={(e) =>
                       setSelectedEmployee({ ...selectedEmployee, lastName: e.target.value })
                     }
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-400"
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 
+                      ${formErrors.lastName 
+                        ? "border-red-500 focus:ring-red-500 dark:border-red-700" 
+                        : "border-gray-300 focus:ring-blue-500 dark:border-gray-600"}
+                      dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white`}
                   />
+                  {formErrors.lastName && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.lastName}</p>
+                  )}
                 </div>
               </div>
 
@@ -858,6 +1075,9 @@ const EmployeeTable = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   <Calendar className="inline-block mr-1 h-4 w-4" />
                   Date of Birth
+                  {formErrors.dateOfBirth && (
+                    <span className="text-red-500 dark:text-red-400 ml-1">*</span>
+                  )}
                 </label>
                 <input
                   type="date"
@@ -865,16 +1085,25 @@ const EmployeeTable = () => {
                   onChange={(e) =>
                     setSelectedEmployee({ ...selectedEmployee, dateOfBirth: e.target.value })
                   }
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-400"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 
+                    ${formErrors.dateOfBirth 
+                      ? "border-red-500 focus:ring-red-500 dark:border-red-700" 
+                      : "border-gray-300 focus:ring-blue-500 dark:border-gray-600"}
+                    dark:bg-gray-700 dark:text-white`}
                 />
+                {formErrors.dateOfBirth && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.dateOfBirth}</p>
+                )}
               </div>
 
               {/* NIC */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  // Replaced invalid 'Id' icon with a valid one, e.g., 'User'
                   <User className="inline-block mr-1 h-4 w-4" />
                   NIC
+                  {formErrors.nic && (
+                    <span className="text-red-500 dark:text-red-400 ml-1">*</span>
+                  )}
                 </label>
                 <input
                   type="text"
@@ -882,8 +1111,38 @@ const EmployeeTable = () => {
                   onChange={(e) =>
                     setSelectedEmployee({ ...selectedEmployee, nic: e.target.value })
                   }
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-400"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 
+                    ${formErrors.nic 
+                      ? "border-red-500 focus:ring-red-500 dark:border-red-700" 
+                      : "border-gray-300 focus:ring-blue-500 dark:border-gray-600"}
+                    dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white`}
                 />
+                {formErrors.nic && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.nic}</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Format: 9 digits followed by V/X or 12 digits
+                </p>
+                {selectedEmployee.dateOfBirth && selectedEmployee.nic && (
+                  formErrors.nic?.includes("match the birth year") ? (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-2 mt-2">
+                      <div className="flex">
+                        <AlertCircle className="h-4 w-4 text-yellow-500 dark:text-yellow-400 mr-2 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                            NIC and date of birth mismatch:
+                          </p>
+                          <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-0.5">
+                            {selectedEmployee.nic.length === 12 
+                              ? `First 4 digits should match birth year ${moment(selectedEmployee.dateOfBirth).format("YYYY")}`
+                              : `First 2 digits should match last 2 digits of birth year ${moment(selectedEmployee.dateOfBirth).format("YY")}`
+                            }
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null
+                )}
               </div>
 
               {/* Role */}
@@ -891,51 +1150,69 @@ const EmployeeTable = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   <Briefcase className="inline-block mr-1 h-4 w-4" />
                   Role
+                  {formErrors.role && (
+                    <span className="text-red-500 dark:text-red-400 ml-1">*</span>
+                  )}
                 </label>
                 <select
                   value={selectedEmployee.role}
                   onChange={(e) =>
                     setSelectedEmployee({ ...selectedEmployee, role: e.target.value })
                   }
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-400"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 
+                    ${formErrors.role 
+                      ? "border-red-500 focus:ring-red-500 dark:border-red-700" 
+                      : "border-gray-300 focus:ring-blue-500 dark:border-gray-600"}
+                    dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white`}
                 >
                   <option value="">Select Role</option>
                   <option value="technician">Technician</option>
                   <option value="owner">Owner</option>
                 </select>
+                {formErrors.role && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.role}</p>
+                )}
               </div>
 
               {/* Employment Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Employment Type</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Employment Type
+                  {formErrors.employmentType && (
+                    <span className="text-red-500 dark:text-red-400 ml-1">*</span>
+                  )}
+                </label>
                 <div className="flex items-center gap-4 mt-2">
                   <label className="flex items-center">
                     <input
                       type="radio"
-                      name="employmentType"
+                      name="employment_type"
                       value="Full-Time"
                       checked={selectedEmployee.employmentType === "Full-Time"}
                       onChange={(e) =>
                         setSelectedEmployee({ ...selectedEmployee, employmentType: e.target.value })
                       }
-                      className="mr-2"
+                      className={`mr-2 ${formErrors.employmentType ? "text-red-500" : "text-blue-500"}`}
                     />
                     <span className="text-gray-800 dark:text-gray-300">Full-Time</span>
                   </label>
                   <label className="flex items-center">
                     <input
                       type="radio"
-                      name="employmentType"
+                      name="employment_type"
                       value="Part-Time"
                       checked={selectedEmployee.employmentType === "Part-Time"}
                       onChange={(e) =>
                         setSelectedEmployee({ ...selectedEmployee, employmentType: e.target.value })
                       }
-                      className="mr-2"
+                      className={`mr-2 ${formErrors.employmentType ? "text-red-500" : "text-blue-500"}`}
                     />
                     <span className="text-gray-800 dark:text-gray-300">Part-Time</span>
                   </label>
                 </div>
+                {formErrors.employmentType && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.employmentType}</p>
+                )}
               </div>
 
               {/* Email */}
@@ -943,6 +1220,9 @@ const EmployeeTable = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   <Mail className="inline-block mr-1 h-4 w-4" />
                   Email
+                  {formErrors.email && (
+                    <span className="text-red-500 dark:text-red-400 ml-1">*</span>
+                  )}
                 </label>
                 <input
                   type="email"
@@ -950,15 +1230,26 @@ const EmployeeTable = () => {
                   onChange={(e) =>
                     setSelectedEmployee({ ...selectedEmployee, email: e.target.value })
                   }
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-400"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 
+                    ${formErrors.email 
+                      ? "border-red-500 focus:ring-red-500 dark:border-red-700" 
+                      : "border-gray-300 focus:ring-blue-500 dark:border-gray-600"}
+                    dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white`}
                 />
+                {formErrors.email && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.email}</p>
+                )}
               </div>
 
               {/* Phone Numbers */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   <Phone className="inline-block mr-1 h-4 w-4" />
-                  Phone Numbers <span className="text-xs text-gray-500">(comma separated)</span>
+                  Phone Numbers 
+                  {formErrors.phoneNumbers && (
+                    <span className="text-red-500 dark:text-red-400 ml-1">*</span>
+                  )}
+                  <span className="text-xs text-gray-500 ml-1">(comma separated)</span>
                 </label>
                 <input
                   type="text"
@@ -967,8 +1258,18 @@ const EmployeeTable = () => {
                     setSelectedEmployee({ ...selectedEmployee, phoneNumbers: e.target.value })
                   }
                   placeholder="e.g. 0712345678, 0767654321"
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-400"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 
+                    ${formErrors.phoneNumbers 
+                      ? "border-red-500 focus:ring-red-500 dark:border-red-700" 
+                      : "border-gray-300 focus:ring-blue-500 dark:border-gray-600"}
+                    dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white`}
                 />
+                {formErrors.phoneNumbers && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.phoneNumbers}</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Phone numbers must start with 07 and be 10 digits long
+                </p>
               </div>
             </div>
 
@@ -977,18 +1278,24 @@ const EmployeeTable = () => {
               <button
                 onClick={() => setIsDialogOpen(false)}
                 className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500 transition-colors"
+                disabled={isLoading || isValidating}
               >
                 Cancel
               </button>
               <button
                 onClick={handleDialogSave}
                 className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center"
-                disabled={isLoading}
+                disabled={isLoading || isValidating}
               >
                 {isLoading ? (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                     Saving...
+                  </>
+                ) : isValidating ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Validating...
                   </>
                 ) : (
                   <>

@@ -10,7 +10,7 @@ const EmployeeRegistrationForm = () => {
     nic: "",
     dateOfBirth: "",
     role: "",
-    employmentType: "", // Added employment type
+    employment_type: "",
     username: "",
     password: "",
     confirmPassword: "",
@@ -18,6 +18,8 @@ const EmployeeRegistrationForm = () => {
 
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -27,15 +29,46 @@ const EmployeeRegistrationForm = () => {
       ...prev,
       [name]: value,
     }));
+    
+    // Clear error for this field when user starts typing again
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => ({
+        ...prev,
+        [name]: ""
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setMessage("");
+    setErrors([]);
+    setFieldErrors({});
 
+    // Form validation
+    const validationErrors: {[key: string]: string} = {};
+    
     // Validate passwords match
     if (employee.password !== employee.confirmPassword) {
-      setMessage("Passwords do not match");
-      setErrors([]);
+      validationErrors.confirmPassword = "Passwords do not match";
+    }
+
+    // Check for empty required fields
+    if (!employee.firstName) validationErrors.firstName = "First name is required";
+    if (!employee.lastName) validationErrors.lastName = "Last name is required";
+    if (!employee.email) validationErrors.email = "Email is required";
+    if (!employee.nic) validationErrors.nic = "NIC is required";
+    if (!employee.dateOfBirth) validationErrors.dateOfBirth = "Date of birth is required";
+    if (!employee.role) validationErrors.role = "Role is required";
+    if (!employee.employment_type) validationErrors.employment_type = "Employment type is required";
+    if (!employee.username) validationErrors.username = "Username is required";
+    if (!employee.password) validationErrors.password = "Password is required";
+    
+    // If there are validation errors, show them and stop submission
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
+      setIsSubmitting(false);
       return;
     }
 
@@ -43,7 +76,7 @@ const EmployeeRegistrationForm = () => {
       // Prepare data for the backend
       const payload = {
         ...employee,
-        phoneNumbers: employee.phoneNumbers.split(",").map((phone) => phone.trim()), // Convert phone numbers to an array
+        phoneNumbers: employee.phoneNumbers.split(",").map((phone) => phone.trim()),
       };
 
       // Send data to the backend
@@ -53,7 +86,7 @@ const EmployeeRegistrationForm = () => {
       );
 
       // Handle success response
-      setMessage(response.data.message);
+      setMessage(response.data.message || "Employee registered successfully!");
       setErrors([]);
       setEmployee({
         firstName: "",
@@ -63,19 +96,64 @@ const EmployeeRegistrationForm = () => {
         nic: "",
         dateOfBirth: "",
         role: "",
-        employmentType: "", // Reset employment type
+        employment_type: "",
         username: "",
         password: "",
         confirmPassword: "",
       });
     } catch (error: any) {
-      // Handle error response
-      if (error.response && error.response.data.errors) {
-        setErrors(error.response.data.errors.map((err: any) => err.msg));
+      // Handle error response - specific handling for duplicate fields
+      if (error.response) {
+        // Check for duplicate entry errors from the server
+        if (error.response.status === 400 || error.response.status === 409) {
+          const errorData = error.response.data;
+          
+          // Handle field-specific errors
+          if (errorData.field && errorData.message) {
+            // This is a field-specific error (e.g. duplicate email)
+            setFieldErrors({
+              [errorData.field]: errorData.message
+            });
+          } 
+          // Handle array of validation errors
+          else if (error.response.data.errors) {
+            const validationErrors: {[key: string]: string} = {};
+            const generalErrors: string[] = [];
+            
+            error.response.data.errors.forEach((err: any) => {
+              if (err.param) {
+                validationErrors[err.param] = err.msg;
+              } else {
+                generalErrors.push(err.msg);
+              }
+            });
+            
+            setFieldErrors(validationErrors);
+            setErrors(generalErrors);
+          } 
+          // Handle general error message
+          else if (error.response.data.message) {
+            setErrors([error.response.data.message]);
+          }
+        } else {
+          // Server error or other HTTP status codes
+          setErrors(["Server error. Please try again later."]);
+        }
+      } else if (error.request) {
+        // Network error - no response received
+        setErrors(["Network error. Please check your connection."]);
       } else {
-        setMessage("An unexpected error occurred");
+        // Other errors
+        setErrors(["An unexpected error occurred"]);
       }
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  // Helper to determine if a field has an error
+  const hasError = (field: string) => {
+    return !!fieldErrors[field];
   };
 
   return (
@@ -97,9 +175,16 @@ const EmployeeRegistrationForm = () => {
                 name="firstName"
                 value={employee.firstName}
                 onChange={handleChange}
-                className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300"
+                className={`mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300 ${
+                  hasError("firstName") 
+                    ? "border-red-500 bg-red-50" 
+                    : "border-gray-300"
+                }`}
                 placeholder="Enter first name"
               />
+              {hasError("firstName") && (
+                <p className="mt-1 text-sm text-red-600">{fieldErrors.firstName}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600">
@@ -110,9 +195,16 @@ const EmployeeRegistrationForm = () => {
                 name="lastName"
                 value={employee.lastName}
                 onChange={handleChange}
-                className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300"
+                className={`mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300 ${
+                  hasError("lastName") 
+                    ? "border-red-500 bg-red-50" 
+                    : "border-gray-300"
+                }`}
                 placeholder="Enter last name"
               />
+              {hasError("lastName") && (
+                <p className="mt-1 text-sm text-red-600">{fieldErrors.lastName}</p>
+              )}
             </div>
           </div>
 
@@ -126,9 +218,16 @@ const EmployeeRegistrationForm = () => {
               name="email"
               value={employee.email}
               onChange={handleChange}
-              className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300"
+              className={`mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300 ${
+                hasError("email") 
+                  ? "border-red-500 bg-red-50" 
+                  : "border-gray-300"
+              }`}
               placeholder="Enter email address"
             />
+            {hasError("email") && (
+              <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>
+            )}
           </div>
 
           {/* Telephone Number */}
@@ -141,9 +240,16 @@ const EmployeeRegistrationForm = () => {
               name="phoneNumbers"
               value={employee.phoneNumbers}
               onChange={handleChange}
-              className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300"
+              className={`mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300 ${
+                hasError("phoneNumbers") 
+                  ? "border-red-500 bg-red-50" 
+                  : "border-gray-300"
+              }`}
               placeholder="Enter phone numbers (comma-separated)"
             />
+            {hasError("phoneNumbers") && (
+              <p className="mt-1 text-sm text-red-600">{fieldErrors.phoneNumbers}</p>
+            )}
           </div>
 
           {/* NIC Number */}
@@ -156,9 +262,16 @@ const EmployeeRegistrationForm = () => {
               name="nic"
               value={employee.nic}
               onChange={handleChange}
-              className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300"
+              className={`mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300 ${
+                hasError("nic") 
+                  ? "border-red-500 bg-red-50" 
+                  : "border-gray-300"
+              }`}
               placeholder="Enter NIC number"
             />
+            {hasError("nic") && (
+              <p className="mt-1 text-sm text-red-600">{fieldErrors.nic}</p>
+            )}
           </div>
 
           {/* Date of Birth */}
@@ -171,8 +284,15 @@ const EmployeeRegistrationForm = () => {
               name="dateOfBirth"
               value={employee.dateOfBirth}
               onChange={handleChange}
-              className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300"
+              className={`mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300 ${
+                hasError("dateOfBirth") 
+                  ? "border-red-500 bg-red-50" 
+                  : "border-gray-300"
+              }`}
             />
+            {hasError("dateOfBirth") && (
+              <p className="mt-1 text-sm text-red-600">{fieldErrors.dateOfBirth}</p>
+            )}
           </div>
 
           {/* Role Selection */}
@@ -184,12 +304,19 @@ const EmployeeRegistrationForm = () => {
               name="role"
               value={employee.role}
               onChange={handleChange}
-              className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300"
+              className={`mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300 ${
+                hasError("role") 
+                  ? "border-red-500 bg-red-50" 
+                  : "border-gray-300"
+              }`}
             >
               <option value="">Select Role</option>
               <option value="owner">Owner</option>
               <option value="technician">Technician</option>
             </select>
+            {hasError("role") && (
+              <p className="mt-1 text-sm text-red-600">{fieldErrors.role}</p>
+            )}
           </div>
 
           {/* Employment Type */}
@@ -201,9 +328,9 @@ const EmployeeRegistrationForm = () => {
               <label className="flex items-center">
                 <input
                   type="radio"
-                  name="employmentType"
+                  name="employment_type"
                   value="Full-Time"
-                  checked={employee.employmentType === "Full-Time"}
+                  checked={employee.employment_type === "Full-Time"}
                   onChange={handleChange}
                   className="mr-2"
                 />
@@ -212,15 +339,18 @@ const EmployeeRegistrationForm = () => {
               <label className="flex items-center">
                 <input
                   type="radio"
-                  name="employmentType"
+                  name="employment_type"
                   value="Part-Time"
-                  checked={employee.employmentType === "Part-Time"}
+                  checked={employee.employment_type === "Part-Time"}
                   onChange={handleChange}
                   className="mr-2"
                 />
                 <span className="text-gray-800">Part-Time</span>
               </label>
             </div>
+            {hasError("employment_type") && (
+              <p className="mt-1 text-sm text-red-600">{fieldErrors.employment_type}</p>
+            )}
           </div>
 
           {/* Username */}
@@ -233,9 +363,16 @@ const EmployeeRegistrationForm = () => {
               name="username"
               value={employee.username}
               onChange={handleChange}
-              className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300"
+              className={`mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300 ${
+                hasError("username") 
+                  ? "border-red-500 bg-red-50" 
+                  : "border-gray-300"
+              }`}
               placeholder="Enter username"
             />
+            {hasError("username") && (
+              <p className="mt-1 text-sm text-red-600">{fieldErrors.username}</p>
+            )}
           </div>
 
           {/* Password */}
@@ -248,9 +385,16 @@ const EmployeeRegistrationForm = () => {
               name="password"
               value={employee.password}
               onChange={handleChange}
-              className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300"
+              className={`mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300 ${
+                hasError("password") 
+                  ? "border-red-500 bg-red-50" 
+                  : "border-gray-300"
+              }`}
               placeholder="Enter password"
             />
+            {hasError("password") && (
+              <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>
+            )}
           </div>
 
           {/* Confirm Password */}
@@ -263,14 +407,21 @@ const EmployeeRegistrationForm = () => {
               name="confirmPassword"
               value={employee.confirmPassword}
               onChange={handleChange}
-              className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300"
+              className={`mt-1 w-full p-2 border rounded-md focus:ring focus:ring-blue-300 ${
+                hasError("confirmPassword") 
+                  ? "border-red-500 bg-red-50" 
+                  : "border-gray-300"
+              }`}
               placeholder="Confirm password"
             />
+            {hasError("confirmPassword") && (
+              <p className="mt-1 text-sm text-red-600">{fieldErrors.confirmPassword}</p>
+            )}
           </div>
 
-          {/* Display Errors */}
+          {/* Display General Errors */}
           {errors.length > 0 && (
-            <div className="bg-red-100 text-red-700 p-4 rounded-md">
+            <div className="bg-red-100 text-red-700 p-4 rounded-md border border-red-300">
               {errors.map((error, index) => (
                 <p key={index} className="text-sm">{error}</p>
               ))}
@@ -279,13 +430,7 @@ const EmployeeRegistrationForm = () => {
 
           {/* Display Success Message */}
           {message && (
-            <div
-              className={`p-4 rounded-md ${
-                errors.length > 0
-                  ? "bg-red-100 text-red-700"
-                  : "bg-green-100 text-green-700"
-              }`}
-            >
+            <div className="bg-green-100 text-green-700 p-4 rounded-md border border-green-300">
               {message}
             </div>
           )}
@@ -295,14 +440,23 @@ const EmployeeRegistrationForm = () => {
             <button
               type="button"
               className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+              onClick={() => {
+                // Clear form or redirect
+                window.history.back();
+              }}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              className={`px-4 py-2 rounded-md ${
+                isSubmitting
+                  ? "bg-blue-400 cursor-not-allowed"
+                  : "bg-blue-500 hover:bg-blue-600"
+              } text-white`}
+              disabled={isSubmitting}
             >
-              Register
+              {isSubmitting ? "Registering..." : "Register"}
             </button>
           </div>
         </form>

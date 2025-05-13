@@ -21,9 +21,9 @@ import {
 
 const MyJobs: React.FC = () => {
   interface Job {
-    job_id: string;
+    job_id: string | number; // Explicitly allowing both string and number
     product_name: string;
-    model: string;
+    model: string | null;
     customer_first_name: string;
     customer_last_name: string;
     repair_description: string;
@@ -102,15 +102,22 @@ const MyJobs: React.FC = () => {
     
     if (searchTerm) {
       const lowerSearchTerm = searchTerm.toLowerCase();
-      result = result.filter(
-        job => 
-          job.job_id.toLowerCase().includes(lowerSearchTerm) ||
-          job.product_name.toLowerCase().includes(lowerSearchTerm) ||
-          job.model?.toLowerCase().includes(lowerSearchTerm) ||
-          job.customer_first_name.toLowerCase().includes(lowerSearchTerm) ||
-          job.customer_last_name.toLowerCase().includes(lowerSearchTerm) ||
-          `${job.customer_first_name} ${job.customer_last_name}`.toLowerCase().includes(lowerSearchTerm)
-      );
+      result = result.filter(job => {
+        // Convert everything to strings and handle possible null/undefined values
+        const jobId = job.job_id != null ? String(job.job_id).toLowerCase() : '';
+        const productName = job.product_name != null ? job.product_name.toLowerCase() : '';
+        const model = job.model != null ? job.model.toLowerCase() : '';
+        const firstName = job.customer_first_name != null ? job.customer_first_name.toLowerCase() : '';
+        const lastName = job.customer_last_name != null ? job.customer_last_name.toLowerCase() : '';
+        const fullName = `${firstName} ${lastName}`;
+        
+        return jobId.includes(lowerSearchTerm) ||
+               productName.includes(lowerSearchTerm) ||
+               model.includes(lowerSearchTerm) ||
+               firstName.includes(lowerSearchTerm) ||
+               lastName.includes(lowerSearchTerm) ||
+               fullName.includes(lowerSearchTerm);
+      });
     }
     
     if (statusFilter) {
@@ -548,7 +555,7 @@ const MyJobs: React.FC = () => {
                             <>
                               <select
                                 value={job.repair_status}
-                                onChange={(e) => handleStatusChange(job.job_id, e.target.value)}
+                                onChange={(e) => handleStatusChange(String(job.job_id), e.target.value)}
                                 disabled={updatingJobId === job.job_id || isTerminalStatus(job.repair_status)}
                                 className={`text-xs mt-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 ${
                                   isTerminalStatus(job.repair_status) 

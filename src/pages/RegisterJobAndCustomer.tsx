@@ -101,7 +101,9 @@ const RegisterJobAndCustomer = () => {
         firstName: customerData.firstName,
         lastName: customerData.lastName,
         email: customerData.email,
-        phoneNumbers: customerData.phoneNumbers || "",
+        phoneNumbers: Array.isArray(customerData.phoneNumbers) 
+          ? customerData.phoneNumbers.join(", ") 
+          : customerData.phoneNumbers || "",
       });
       
       setCustomerProducts(products); // Store the customer's products
@@ -379,6 +381,8 @@ const RegisterJobAndCustomer = () => {
     setIsProductFound(true);
     setSelectedCustomerProduct(product);
     setShowProductsModal(false);
+    
+    setMessage(`Selected existing product: ${product.product_name}`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -391,6 +395,7 @@ const RegisterJobAndCustomer = () => {
 
     setIsSubmitting(true);
     try {
+      // Prepare the data to match the backend's expected format
       const formData = new FormData();
 
       let customerID = null;
@@ -401,21 +406,26 @@ const RegisterJobAndCustomer = () => {
         const response = await axios.get(
           `http://localhost:5000/api/customers?search=${customerSearch}`
         );
-        customerID = response.data[0].id; // Assuming the backend returns the customer ID
+        customerID = response.data[0].id;
       } else {
         // Append customer data if not found via search
         formData.append("firstName", customer.firstName);
         formData.append("lastName", customer.lastName);
         formData.append("email", customer.email);
+        
+        // Format phone numbers as array for the backend
         const phoneNumbersArray = customer.phoneNumbers
           .split(",")
-          .map((phone: string) => phone.trim());
-        phoneNumbersArray.forEach((phone: string) =>
-          formData.append("phone_number[]", phone)
-        );
+          .map((phone: string) => phone.trim())
+          .filter((phone: string) => phone); // Remove empty strings
+          
+        // Add each phone number to the formData
+        phoneNumbersArray.forEach((phone: string) => {
+          formData.append("phone_number[]", phone);
+        });
       }
 
-      // If product is found via search, use the existing productID
+      // If product is found via search or selected from customer's products
       if (isProductFound && !productID) {
         let url = "http://localhost:5000/api/products?";
         let params = new URLSearchParams();
@@ -428,18 +438,27 @@ const RegisterJobAndCustomer = () => {
         }
         
         const response = await axios.get(`http://localhost:5000/api/products?${params}`);
-        const productData = response.data[0];
-        productID = productData.product_id; // Corrected field name
-        formData.append("product_name", productData.product_name); // Include product_name
-      } else if (!productID) {
-        // Append product data if not found via search
+        if (response.data.length > 0) {
+          productID = response.data[0].product_id;
+        }
+      }
+      
+      // If we have a productID, add it to formData
+      if (productID) {
+        formData.append("productID", productID.toString());
+      } else {
+        // Add product details if we don't have a productID
         formData.append("product_name", product.productName);
         formData.append("model", product.model);
         formData.append("model_no", product.modelNumber);
         if (product.productImage) {
-          formData.append("product_image", product.productImage); // Cloudinary URL
-          console.log("Sending Cloudinary URL:", product.productImage); // Debug log
+          formData.append("product_image", product.productImage); // Send Cloudinary URL
         }
+      }
+
+      // If we have a customerID, add it to formData
+      if (customerID) {
+        formData.append("customerID", customerID.toString());
       }
 
       // Append job data (always required)
@@ -448,13 +467,9 @@ const RegisterJobAndCustomer = () => {
       formData.append("handoverDate", job.handoverDate);
       formData.append("employeeID", job.employeeID);
 
-      // Include customerID and productID if they exist
-      if (customerID) formData.append("customerID", customerID.toString());
-      if (productID) formData.append("productID", productID.toString());
-
       // Debugging: Log the FormData
       for (let [key, value] of formData.entries()) {
-        console.log(`${key}: ${value}`); // Debug log
+        console.log(`${key}: ${value}`);
       }
 
       const response = await axios.post(
@@ -471,9 +486,19 @@ const RegisterJobAndCustomer = () => {
       setError("");
       resetForm();
     } catch (err: any) {
-      console.error("Form submission error:", err); // Debug log
-      setMessage("");
-      setError(err.response?.data?.error || "An unexpected error occurred");
+      console.error("Form submission error:", err);
+      
+      // Improved error handling to show validation errors from the backend
+      if (err.response?.data?.errors) {
+        const validationErrors = err.response.data.errors;
+        // Create a user-friendly error message from the validation errors
+        const errorMsg = validationErrors.map((err: any) => 
+          `${err.field}: ${err.message}`
+        ).join('\n');
+        setError(`Form validation errors:\n${errorMsg}`);
+      } else {
+        setError(err.response?.data?.message || err.response?.data?.error || "An unexpected error occurred");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -573,77 +598,206 @@ const RegisterJobAndCustomer = () => {
                 </div>
               </div>
 
+              {/* Customer Products Section - Enhanced */}
               {isCustomerFound && customerProducts.length > 0 && (
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-lg dark:bg-blue-900/30 dark:border-blue-800">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      <Package className="text-blue-500 mr-2 flex-shrink-0" size={16} />
-                      <p className="text-blue-800 dark:text-blue-300 text-sm font-medium">
-                        This customer has {customerProducts.length} registered product(s)
-                      </p>
+                <div className="mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex flex-col">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center">
+                        <Package className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2" />
+                        <h3 className="text-base font-medium text-gray-800 dark:text-gray-200">
+                          Customer's Existing Products
+                        </h3>
+                      </div>
+                      {selectedCustomerProduct ? (
+                        <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 text-xs rounded-full px-2.5 py-0.5">
+                          Product Selected
+                        </span>
+                      ) : null}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowProductsModal(true)}
-                      className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
-                    >
-                      View Products
-                    </button>
+
+                    {/* Product selection indicator */}
+                    {selectedCustomerProduct ? (
+                      <div className="flex items-center p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-800 mb-3">
+                        <div className="h-12 w-12 flex-shrink-0 bg-gray-100 dark:bg-gray-700 rounded overflow-hidden mr-3">
+                          {selectedCustomerProduct.product_image ? (
+                            <img 
+                              src={selectedCustomerProduct.product_image} 
+                              alt={selectedCustomerProduct.product_name}
+                              className="h-full w-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).onerror = null;
+                                (e.target as HTMLImageElement).src = "https://via.placeholder.com/100?text=Product";
+                              }}
+                            />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center">
+                              <Package className="h-6 w-6 text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-grow">
+                          <p className="font-medium text-gray-800 dark:text-gray-200">
+                            {selectedCustomerProduct.product_name}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {selectedCustomerProduct.model} {selectedCustomerProduct.model_number && `(${selectedCustomerProduct.model_number})`}
+                          </p>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            setSelectedCustomerProduct(null);
+                            setProduct({
+                              productName: "",
+                              model: "",
+                              modelNumber: "",
+                              productImage: null,
+                            });
+                            setImagePreview(null);
+                            setIsProductFound(false);
+                          }}
+                          className="ml-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        </button>
+                      </div>
+                    ) : null}
+
+                    <div className="flex justify-between">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        This customer has {customerProducts.length} registered product{customerProducts.length > 1 ? 's' : ''}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setShowProductsModal(true)}
+                        className={`text-sm font-medium px-3 py-1 rounded ${
+                          selectedCustomerProduct
+                            ? "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                            : "bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-900/60"
+                        }`}
+                      >
+                        {selectedCustomerProduct ? "Change Product" : "Choose Product"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Products Modal */}
+              {/* Improved Products Modal */}
               {showProductsModal && (
                 <div className="fixed inset-0 z-50 overflow-y-auto">
-                  <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                    <div className="fixed inset-0 transition-opacity">
+                  <div className="flex items-center justify-center min-h-screen p-4">
+                    <div className="fixed inset-0 transition-opacity" onClick={() => setShowProductsModal(false)}>
                       <div className="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
                     </div>
-                    <span className="hidden sm:inline-block sm:align-middle sm:h-screen"></span>&#8203;
-                    <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-                      <div className="sm:flex sm:items-start">
-                        <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                          <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
-                            Customer Products
+                    
+                    <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full mx-auto overflow-hidden">
+                      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 flex items-center">
+                            <Package className="h-5 w-5 mr-2 text-blue-500" />
+                            Select Existing Product
                           </h3>
-                          <div className="mt-4 max-h-60 overflow-auto">
+                          <button
+                            type="button"
+                            onClick={() => setShowProductsModal(false)}
+                            className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                          >
+                            <X className="h-5 w-5" />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="px-6 py-4">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                          Select a product from this customer's repair history to pre-fill the product details.
+                        </p>
+                        
+                        {customerProducts.length === 0 ? (
+                          <div className="py-8 text-center">
+                            <div className="mx-auto w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+                              <Package className="h-8 w-8 text-gray-400" />
+                            </div>
+                            <p className="text-gray-600 dark:text-gray-400 font-medium">No products found</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">This customer doesn't have any repair history.</p>
+                          </div>
+                        ) : (
+                          <div className="max-h-72 overflow-y-auto space-y-2">
                             {customerProducts.map((product) => (
                               <div 
                                 key={product.product_id}
-                                className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 mb-2 flex items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                                className={`p-3 border rounded-lg cursor-pointer flex items-center transition ${
+                                  selectedCustomerProduct?.product_id === product.product_id
+                                    ? "border-blue-500 bg-blue-50 dark:border-blue-600 dark:bg-blue-900/30"
+                                    : "border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 dark:border-gray-700 dark:hover:border-blue-700 dark:hover:bg-blue-900/20"
+                                }`}
                                 onClick={() => selectExistingProduct(product)}
                               >
-                                <div className="h-12 w-12 flex-shrink-0 bg-gray-100 dark:bg-gray-700 rounded overflow-hidden mr-3">
+                                <div className="h-14 w-14 flex-shrink-0 bg-gray-100 dark:bg-gray-700 rounded overflow-hidden mr-3">
                                   {product.product_image ? (
                                     <img 
                                       src={product.product_image} 
                                       alt={product.product_name}
                                       className="h-full w-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).onerror = null;
+                                        (e.target as HTMLImageElement).src = "https://via.placeholder.com/100?text=Product";
+                                      }}
                                     />
                                   ) : (
                                     <div className="h-full w-full flex items-center justify-center text-gray-400 dark:text-gray-500">
-                                      <Package size={20} />
+                                      <Package size={24} />
                                     </div>
                                   )}
                                 </div>
-                                <div>
+                                <div className="flex-1">
                                   <p className="font-medium text-gray-800 dark:text-gray-200">{product.product_name}</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">{product.model} {product.model_number ? `(${product.model_number})` : ''}</p>
+                                  <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    {product.model && <span className="mr-2">{product.model}</span>}
+                                    {product.model_number && <span className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{product.model_number}</span>}
+                                  </div>
                                 </div>
+                                {selectedCustomerProduct?.product_id === product.product_id && (
+                                  <div className="ml-2 text-blue-500">
+                                    <Check className="h-5 w-5" />
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
-                          <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-                            <button
-                              type="button"
-                              onClick={() => setShowProductsModal(false)}
-                              className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm"
-                            >
-                              Close
-                            </button>
-                          </div>
-                        </div>
+                        )}
+                      </div>
+                      
+                      <div className="bg-gray-50 dark:bg-gray-800 px-6 py-3 flex justify-between border-t border-gray-200 dark:border-gray-700">
+                        <button
+                          type="button"
+                          onClick={() => setShowProductsModal(false)}
+                          className="text-gray-600 dark:text-gray-400 font-medium text-sm hover:text-gray-800"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowProductsModal(false);
+                            // Reset product selection if we want to use a new one
+                            if (selectedCustomerProduct) {
+                              setSelectedCustomerProduct(null);
+                              setProduct({
+                                productName: "",
+                                model: "",
+                                modelNumber: "",
+                                productImage: null,
+                              });
+                              setImagePreview(null);
+                              setIsProductFound(false);
+                            }
+                          }}
+                          className="text-blue-600 dark:text-blue-400 font-medium text-sm hover:text-blue-700"
+                        >
+                          Use New Product
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -738,7 +892,7 @@ const RegisterJobAndCustomer = () => {
                       </p>
                     )}
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      Enter multiple numbers separated by commas
+                      Enter multiple numbers separated by commas (must start with 07)
                     </p>
                   </div>
                 </div>
@@ -862,7 +1016,7 @@ const RegisterJobAndCustomer = () => {
               </div>
               
               {/* Product Information */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden product-details-section">
                 <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4">
                   <div className="flex items-center space-x-2">
                     <Package className="text-white" size={20} />
@@ -1063,6 +1217,7 @@ const RegisterJobAndCustomer = () => {
                         value={job.handoverDate}
                         onChange={handleJobChange}
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                        required
                       />
                     </div>
                   </div>
@@ -1089,7 +1244,7 @@ const RegisterJobAndCustomer = () => {
                       <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                         <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                        </svg>
+                          </svg>
                       </div>
                     </div>
                   </div>
@@ -1116,7 +1271,7 @@ const RegisterJobAndCustomer = () => {
                   <AlertCircle className="text-red-600 dark:text-red-400 mr-3 flex-shrink-0" size={24} />
                   <div>
                     <h3 className="text-red-800 dark:text-red-300 font-medium">Error</h3>
-                    <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>
+                    <p className="text-red-700 dark:text-red-400 text-sm whitespace-pre-line">{error}</p>
                   </div>
                 </div>
               )}
@@ -1165,6 +1320,7 @@ const RegisterJobAndCustomer = () => {
                 <li>Search for existing customers by name, email, or phone number</li>
                 <li>Search for existing products by name or model to avoid duplicates</li>
                 <li>Upload clear images of products to help with identification</li>
+                <li>Phone numbers must be in format 07XXXXXXXX (10 digits starting with 07)</li>
                 <li>Provide detailed repair descriptions for better service tracking</li>
               </ul>
             </div>
