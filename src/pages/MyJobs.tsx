@@ -61,7 +61,7 @@ const MyJobs: React.FC = () => {
 
       if (!employeeData || !employeeData.employeeId) {
         setError("Employee ID not found. Please log in again.");
-        navigate("/login");
+        navigate("/");
         return;
       }
 
@@ -153,11 +153,14 @@ const MyJobs: React.FC = () => {
     }
   };
 
-  // Update the handleStatusChange function to validate workflow
-  const handleStatusChange = async (jobId: string, newStatus: string) => {
+  // Update the handleStatusChange function to properly handle both string and number job IDs
+  const handleStatusChange = async (jobId: string | number, newStatus: string) => {
     // Get the current job status
-    const currentJob = jobs.find(job => job.job_id === jobId);
-    if (!currentJob) return;
+    const currentJob = jobs.find(job => String(job.job_id) === String(jobId));
+    if (!currentJob) {
+      setError(`Job with ID ${jobId} not found.`);
+      return;
+    }
     
     // Check if the new status is allowed based on current status
     const availableStatuses = getAvailableStatuses(currentJob.repair_status);
@@ -166,15 +169,16 @@ const MyJobs: React.FC = () => {
       return;
     }
 
-    setUpdatingJobId(jobId);
+    setUpdatingJobId(String(jobId));
     try {
+      // Convert job_id to string in the URL to ensure proper API call
       await axios.put(`http://localhost:5000/api/jobs/update-status/${jobId}`, {
         repair_status: newStatus,
       });
 
       // Update the job list after the status change
       const updatedJobs = jobs.map((job) =>
-        job.job_id === jobId ? { ...job, repair_status: newStatus } : job
+        String(job.job_id) === String(jobId) ? { ...job, repair_status: newStatus } : job
       );
       
       setJobs(updatedJobs);
@@ -199,7 +203,13 @@ const MyJobs: React.FC = () => {
       }, 3000);
     } catch (error) {
       console.error("Error updating job status:", error);
-      setError("Failed to update job status. Please try again.");
+      
+      // Provide more specific error message if available
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message || `Failed to update job status to ${newStatus}. Server error.`);
+      } else {
+        setError(`Failed to update job status to ${newStatus}. Please try again.`);
+      }
       
       // Clear the error message after 4 seconds
       setTimeout(() => {

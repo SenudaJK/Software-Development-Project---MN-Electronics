@@ -28,7 +28,7 @@ function App() {
   // Wrapper component to check the current route
   const AppContent = () => {
     const location = useLocation();
-    const isLoginPage = location.pathname === '/login';
+    const isLoginPage = location.pathname === '/';
 
     if (isLoginPage) {
       return <AppRoutes />;

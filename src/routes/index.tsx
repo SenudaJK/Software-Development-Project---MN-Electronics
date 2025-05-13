@@ -31,12 +31,14 @@ import PurchaseItems from "../pages/PurchaseItems";
 import RegisterWarrantyClaim from "../pages/RegisterWarrantyClaim";
 import BookingDetail from "../pages/BookingDetail";
 import EditAccount from "../pages/EditAccount";
+// import OverviewReport from "../components/reports/OverviewReport";
+// import ReportsPage from "../components/reports/ReportsPage";
 
 const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/login" element={<Login />} />
+      <Route path="/" element={<Login />} />
       <Route path="/customers" element={<Customers />} />
       <Route path="/repair-jobs" element={<RepairJobs />} />
       <Route path="/products" element={<Products />} />
@@ -67,6 +69,21 @@ const AppRoutes = () => {
       <Route path="/register-warranty-claim/:jobId" element={<RegisterWarrantyClaim />} />
       <Route path="/bookings/:id" element={<BookingDetail />} />
       <Route path="/account/edit" element={<EditAccount />} />
+      {/* <Route 
+        path="/overview-report" 
+        element={<OverviewReport formatCurrency={(value) => `$${value.toFixed(2)}`} formatDate={(date) => new Date(date).toLocaleDateString()} />} 
+      /> */}
+      {/* <Route 
+        path="/overview-report" 
+        element={
+          <OverviewReport 
+            data={[]} 
+            formatCurrency={(value) => `$${value.toFixed(2)}`} 
+          />
+        } 
+      /> */}
+      {/* <Route path="/report-page" element={<ReportsPage />} /> */}
+      {/* Add more routes as needed */}
     </Routes>
   );
 };

@@ -33,10 +33,44 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick, darkMode, toggleDarkMode }
 
   const navigate = useNavigate();
 
+  const fetchMissingUserData = async (employeeId: string) => {
+    try {
+      const response = await axios.get(`http://localhost:5000/api/employees/${employeeId}`);
+      const userData = response.data;
+      
+      // Update the missing information
+      const updatedData = {
+        ...JSON.parse(localStorage.getItem('employee') || '{}'),
+        username: userData.username,
+        fullName: userData.fullName || `${userData.firstName} ${userData.lastName}`,
+        email: userData.email,
+        role: userData.role
+      };
+      
+      // Save the complete data back to localStorage
+      localStorage.setItem('employee', JSON.stringify(updatedData));
+      
+      // Update component state
+      setUsername(userData.username);
+      setFullName(userData.fullName || `${userData.firstName} ${userData.lastName}`);
+      setEmail(userData.email);
+      setRole(userData.role);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
+
   useEffect(() => {
     const fetchUserDetails = () => {
       const employeeData = JSON.parse(localStorage.getItem('employee') || '{}');
-      if (employeeData.username) setUsername(employeeData.username);
+      
+      if (employeeData.username) {
+        setUsername(employeeData.username);
+      } else if (employeeData.employeeId) {
+        // Username is missing but we have employeeId, fetch the missing data
+        fetchMissingUserData(employeeData.employeeId);
+      }
+      
       if (employeeData.fullName) setFullName(employeeData.fullName);
       if (employeeData.role) setRole(employeeData.role);
       if (employeeData.email) setEmail(employeeData.email);
@@ -123,7 +157,7 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick, darkMode, toggleDarkMode }
 
   const handleLogout = () => {
     localStorage.clear();
-    navigate('/login');
+    navigate('/');
   };
 
   return (

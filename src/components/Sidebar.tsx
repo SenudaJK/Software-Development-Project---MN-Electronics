@@ -69,9 +69,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
     return () => setter(prev => !prev);
   };
 
-  const menuItems = [
-    { path: '/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-  ];
+  // Only show dashboard for owner role
+  const menuItems = role === 'owner' 
+    ? [{ path: '/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' }]
+    : [];
 
   const employeeItems = [
     { path: '/employees', icon: <Users size={18} />, label: 'View Employees' },
@@ -79,7 +80,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
   ];
 
   const jobItems = [
-    { path: '/register/register-job-customer', icon: <Wrench size={18} />, label: 'Register Job' },
+    ...(role === 'owner' ? [{ path: '/register/register-job-customer', icon: <Package size={18} />, label: 'Register Job' }] : []),
+    // { path: '/register/register-job-customer', icon: <Wrench size={18} />, label: 'Register Job' },
     { path: '/jobs', icon: <FileCheck size={18} />, label: 'All Jobs' },
     { path: '/myjobs', icon: <CircleDot size={18} />, label: 'My Jobs' },
     { path: '/warranty-jobs', icon: <Shield size={18} />, label: 'Warranty Jobs' },
@@ -91,16 +93,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
   ];
 
   const invoiceSubItems = [
-    { path: '/invoice/advance-payment', icon: <DollarSign size={18} />, label: 'Advanced Payment' },
-    { path: '/invoice/full-payment', icon: <FileText size={18} />, label: 'Full Payment' },
+    ...(role === 'owner' ? [{ path: '/invoice/advance-payment', icon: <Package size={18} />, label: 'Advanced Payment' }] : []),
+    // { path: '/invoice/advance-payment', icon: <DollarSign size={18} />, label: 'Advanced Payment' },
+     ...(role === 'owner' ? [{ path: '/invoice/full-payment', icon: <Package size={18} />, label: 'Full Payment' }] : []),
+    // { path: '/invoice/full-payment', icon: <FileText size={18} />, label: 'Full Payment' },
     { path: '/view-invoice', icon: <FileText size={18} />, label: 'View Invoices' },
     { path: '/view-advance-invoice', icon: <FileText size={18} />, label: 'View Advance Invoices' },
   ];
 
+  // Filter inventory items based on role
   const inventorySubItems = [
-    { path: '/add-inventory', icon: <Package size={18} />, label: 'Add Inventory' },
+    // Only show Add Inventory if role is owner
+    ...(role === 'owner' ? [{ path: '/add-inventory', icon: <Package size={18} />, label: 'Add Inventory' }] : []),
+    // Always show View Inventory
     { path: '/inventory/view-inventory', icon: <Layers size={18} />, label: 'View Inventory' },
-    { path: '/inventory/inventory-batch', icon: <Package size={18} />, label: 'Inventory Batch' },
+    // Only show Inventory Batch if role is owner
+    ...(role === 'owner' ? [{ path: '/inventory/inventory-batch', icon: <Package size={18} />, label: 'Inventory Batch' }] : []),
+    // Always show Purchase Items
     { path: '/purchase-items', icon: <ShoppingCart size={18} />, label: 'Purchase Items' },
   ];
 
@@ -127,8 +136,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
       <div className="overflow-y-auto flex-grow custom-scrollbar">
         <nav className="p-4">
           <div className="space-y-1">
-            {/* Dashboard */}
-            {menuItems.map((item) => (
+            {/* Dashboard - Only show for owner */}
+            {menuItems.length > 0 && menuItems.map((item) => (
               <NavLink
                 key={item.path}
                 to={item.path}
@@ -283,45 +292,47 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
               )}
             </div>
 
-            {/* Inventory Section */}
-            <div className="mb-2">
-              <button
-                onClick={handleToggle(setOpenInventory)}
-                className={`flex items-center justify-between w-full px-4 py-2.5 rounded-lg transition-colors ${
-                  openInventory
-                    ? 'bg-gray-700 text-white font-medium'
-                    : 'text-gray-300 hover:bg-gray-700/70 hover:text-white'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  <span className="text-blue-400"><Layers size={20} /></span>
-                  <span>Inventory</span>
-                </div>
-                {openInventory ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </button>
-              
-              {openInventory && (
-                <div className="mt-1 ml-4 pl-3 border-l border-gray-600">
-                  {inventorySubItems.map((subItem) => (
-                    <NavLink
-                      key={subItem.path}
-                      to={subItem.path}
-                      className={({ isActive }) =>
-                        `flex items-center space-x-3 px-3 py-2 text-sm rounded-md transition-colors
-                        ${
-                          isActive
-                            ? 'bg-blue-600/20 text-blue-400 font-medium'
-                            : 'text-gray-300 hover:bg-gray-700/50 hover:text-gray-100'
-                        }`
-                      }
-                    >
-                      <span className="text-current opacity-80">{subItem.icon}</span>
-                      <span>{subItem.label}</span>
-                    </NavLink>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Inventory Section - Only show if there are items to display */}
+            {inventorySubItems.length > 0 && (
+              <div className="mb-2">
+                <button
+                  onClick={handleToggle(setOpenInventory)}
+                  className={`flex items-center justify-between w-full px-4 py-2.5 rounded-lg transition-colors ${
+                    openInventory
+                      ? 'bg-gray-700 text-white font-medium'
+                      : 'text-gray-300 hover:bg-gray-700/70 hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <span className="text-blue-400"><Layers size={20} /></span>
+                    <span>Inventory</span>
+                  </div>
+                  {openInventory ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </button>
+                
+                {openInventory && (
+                  <div className="mt-1 ml-4 pl-3 border-l border-gray-600">
+                    {inventorySubItems.map((subItem) => (
+                      <NavLink
+                        key={subItem.path}
+                        to={subItem.path}
+                        className={({ isActive }) =>
+                          `flex items-center space-x-3 px-3 py-2 text-sm rounded-md transition-colors
+                          ${
+                            isActive
+                              ? 'bg-blue-600/20 text-blue-400 font-medium'
+                              : 'text-gray-300 hover:bg-gray-700/50 hover:text-gray-100'
+                          }`
+                        }
+                      >
+                        <span className="text-current opacity-80">{subItem.icon}</span>
+                        <span>{subItem.label}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </nav>
       </div>
