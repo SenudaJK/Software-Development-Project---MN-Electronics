@@ -1,7 +1,7 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import Dashboard from "../pages/Dashboard";
-import  Customers from "../pages/Customers";
+import Customers from "../pages/Customers";
 import RepairJobs from "../pages/RepairJobs";
 import Products from "../pages/Products";
 import Salary from "../pages/Salary";
@@ -31,59 +31,52 @@ import PurchaseItems from "../pages/PurchaseItems";
 import RegisterWarrantyClaim from "../pages/RegisterWarrantyClaim";
 import BookingDetail from "../pages/BookingDetail";
 import EditAccount from "../pages/EditAccount";
-// import OverviewReport from "../components/reports/OverviewReport";
-// import ReportsPage from "../components/reports/ReportsPage";
+import ProtectedRoute from "../components/ProtectedRoute";
 
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/dashboard" element={<Dashboard />} />
+      {/* Public routes */}
       <Route path="/" element={<Login />} />
-      <Route path="/customers" element={<Customers />} />
-      <Route path="/repair-jobs" element={<RepairJobs />} />
-      <Route path="/products" element={<Products />} />
-      <Route path="/salary" element={<Salary />} />
-      <Route path="/register/register-job-customer" element={<RegisterJobAndCustomer />} />
-      <Route path="/register-employee" element={<EmployeeRegistrationForm />} />
-      <Route path="/add-inventory" element={<InventoryForm />} />
-      <Route path="/inventory/inventory-batch" element={<InventoryBatchRegistration />} />
-      <Route path="/inventory/view-inventory" element={<ViewInventory />} />
-      <Route path="/employees" element={<EmployeeTable />} />
-      <Route path="invoice/advance-payment" element={<AdvanceInvoice />} />
-      <Route path="invoice/full-payment" element={<FullInvoice />} />
-      <Route path="/inventory-batch/:inventoryId" element={<InventoryBatch />} />
-      <Route path="/myjobs" element={<MyJobs />} />
-      <Route path="/job-used-inventory/:jobId" element={<JobUsedInventory />} />
-      <Route path="/jobs" element={<JobDetails/>} />
-      <Route path="/edit-job/:jobId" element={<EditJob />} />
-      <Route path="/warranty-jobs" element={<WarrantyJobs />} />
-      <Route path="/my-salary" element={<MySalary />} />
-      <Route path="/register-salary" element={<RegisterSalary />} />
-      <Route path="/view-invoice" element={<ViewInvoices />} />
-      <Route path="/invoice/:id" element={<InvoiceDetails />} />
-      <Route path="/view-job-used-inventory" element={<ViewJobUsedInventory />} />
-      <Route path="/view-advance-invoice" element={<ViewAdvancePayments />} />
-      <Route path="/advance-payment/:jobId" element={<AdvanceInvoiceDetail />} />
-      <Route path="/purchase-items" element={<PurchaseItems />} />
-      <Route path="/view-job-used-inventory/:jobId" element={<ViewJobUsedInventory />} />
-      <Route path="/register-warranty-claim/:jobId" element={<RegisterWarrantyClaim />} />
-      <Route path="/bookings/:id" element={<BookingDetail />} />
-      <Route path="/account/edit" element={<EditAccount />} />
-      {/* <Route 
-        path="/overview-report" 
-        element={<OverviewReport formatCurrency={(value) => `$${value.toFixed(2)}`} formatDate={(date) => new Date(date).toLocaleDateString()} />} 
-      /> */}
-      {/* <Route 
-        path="/overview-report" 
-        element={
-          <OverviewReport 
-            data={[]} 
-            formatCurrency={(value) => `$${value.toFixed(2)}`} 
-          />
-        } 
-      /> */}
-      {/* <Route path="/report-page" element={<ReportsPage />} /> */}
-      {/* Add more routes as needed */}
+      
+      {/* Routes accessible by both owners and technicians */}
+      <Route element={<ProtectedRoute allowedRoles={['owner', 'technician']} />}>
+        <Route path="/customers" element={<Customers />} />
+        <Route path="/myjobs" element={<MyJobs />} />
+        <Route path="/warranty-jobs" element={<WarrantyJobs />} />
+        <Route path="/my-salary" element={<MySalary />} />
+        <Route path="/inventory/view-inventory" element={<ViewInventory />} />
+        <Route path="/view-invoice" element={<ViewInvoices />} />
+        <Route path="/view-advance-invoice" element={<ViewAdvancePayments />} />
+        <Route path="/view-job-used-inventory" element={<ViewJobUsedInventory />} />
+        <Route path="/purchase-items" element={<PurchaseItems />} />
+        <Route path="/view-job-used-inventory/:jobId" element={<ViewJobUsedInventory />} />
+        <Route path="/bookings/:id" element={<BookingDetail />} />
+        <Route path="/account/edit" element={<EditAccount />} />
+      </Route>
+
+      {/* Owner-only routes */}
+      <Route element={<ProtectedRoute allowedRoles={['owner']} />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/repair-jobs" element={<RepairJobs />} />
+        <Route path="/products" element={<Products />} />
+        <Route path="/salary" element={<Salary />} />
+        <Route path="/register/register-job-customer" element={<RegisterJobAndCustomer />} />
+        <Route path="/register-employee" element={<EmployeeRegistrationForm />} />
+        <Route path="/add-inventory" element={<InventoryForm />} />
+        <Route path="/inventory/inventory-batch" element={<InventoryBatchRegistration />} />
+        <Route path="/employees" element={<EmployeeTable />} />
+        <Route path="invoice/advance-payment" element={<AdvanceInvoice />} />
+        <Route path="invoice/full-payment" element={<FullInvoice />} />
+        <Route path="/inventory-batch/:inventoryId" element={<InventoryBatch />} />
+        <Route path="/job-used-inventory/:jobId" element={<JobUsedInventory />} />
+        <Route path="/jobs" element={<JobDetails />} />
+        <Route path="/edit-job/:jobId" element={<EditJob />} />
+        <Route path="/register-salary" element={<RegisterSalary />} />
+        <Route path="/invoice/:id" element={<InvoiceDetails />} />
+        <Route path="/advance-payment/:jobId" element={<AdvanceInvoiceDetail />} />
+        <Route path="/register-warranty-claim/:jobId" element={<RegisterWarrantyClaim />} />
+      </Route>
     </Routes>
   );
 };
