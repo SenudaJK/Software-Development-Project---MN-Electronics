@@ -19,7 +19,7 @@ const SignupPage: React.FC = () => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { signup } = useAuth();
+  const {} = useAuth();
   const navigate = useNavigate();
   
   const handleAddPhoneNumber = () => {
@@ -256,22 +256,21 @@ const SignupPage: React.FC = () => {
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-text mb-1">Phone Numbers</label>
-              <div className="flex items-center">
+              <div className="flex items-center space-x-2">
                 <div className="flex-grow">
-                  <Input
+                  <input
                     id="phoneNumber"
                     type="text"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     placeholder="07XXXXXXXX"
-                    leftIcon={<Phone size={20} className="text-text-light" />}
+                    className="form-input w-full"
                   />
                 </div>
                 <Button
                   type="button"
                   variant="secondary"
                   size="md"
-                  className="ml-2"
                   onClick={handleAddPhoneNumber}
                 >
                   Add

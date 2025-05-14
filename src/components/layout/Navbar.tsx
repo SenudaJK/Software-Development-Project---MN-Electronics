@@ -36,6 +36,9 @@ const Navbar: React.FC = () => {
               <Link to="/new-booking" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-text hover:border-primary hover:text-primary">
                 Book Repair
               </Link>
+              <Link to="/verify-account" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-text hover:border-primary hover:text-primary">
+                Verify Account
+              </Link>
             </div>
           </div>
           
@@ -110,6 +113,13 @@ const Navbar: React.FC = () => {
             onClick={() => setIsMobileMenuOpen(false)}
           >
             Book Repair
+          </Link>
+          <Link
+            to="/verify-account"
+            className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-text hover:bg-gray-50 hover:border-primary hover:text-primary"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Verify Account
           </Link>
         </div>
         

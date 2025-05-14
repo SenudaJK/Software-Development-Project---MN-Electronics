@@ -17,6 +17,7 @@ import ProfilePage from './pages/account/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
 import VerifyCustomerPage from './pages/auth/VerifyCustomerPage';// Ensure this file exists in the specified path or adjust the path
 import InvoiceDetailsPage from './pages/invoice/InvoiceDetailsPage';
+import FeedbackForm from './pages/feedback/FeedbackForm';
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
             <Route path="forgot-password" element={<ForgotPasswordPage />} />
             <Route path="repair-status" element={<RepairStatusPage />} />
             <Route path="verify-account" element={<VerifyCustomerPage />} />
+            <Route path="feedback" element={<FeedbackForm jobId={123} />} />
             
             {/* Protected Routes */}
             <Route path="dashboard" element={

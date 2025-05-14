@@ -228,17 +228,30 @@ const RepairStatusPage: React.FC = () => {
                     </div>
                   </div>
                   
-                  {jobDetails.warranty_eligible && (
-                    <div className="flex items-start">
-                      <ShieldCheck size={20} className="text-success mr-2 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm text-text-secondary mb-1">Warranty Status</p>
-                        <p className="font-medium text-success">
-                          Covered under warranty
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                  {/* Warranty information - now showing both eligible and not eligible */}
+                  <div className="flex items-start">
+                    {jobDetails.warranty_eligible ? (
+                      <>
+                        <ShieldCheck size={20} className="text-success mr-2 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm text-text-secondary mb-1">Warranty Status</p>
+                          <p className="font-medium text-success">
+                            Covered under warranty
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle size={20} className="text-warning mr-2 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm text-text-secondary mb-1">Warranty Status</p>
+                          <p className="font-medium text-warning">
+                            Not covered by warranty
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </Card>
               
