@@ -90,6 +90,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
   const singleItems = [
     { path: '/customers', icon: <Users size={20} />, label: 'View Customers' },
     { path: '/my-salary', icon: <DollarSign size={20} />, label: 'My Salary' },
+    ...(role === 'owner' ? [{ path: '/fulltime-salary', icon: <DollarSign size={20} />, label: 'Add Full time Salary' }] : []),
   ];
 
   const invoiceSubItems = [

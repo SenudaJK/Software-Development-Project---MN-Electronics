@@ -31,6 +31,7 @@ import PurchaseItems from "../pages/PurchaseItems";
 import RegisterWarrantyClaim from "../pages/RegisterWarrantyClaim";
 import BookingDetail from "../pages/BookingDetail";
 import EditAccount from "../pages/EditAccount";
+import FullTimeSalaryManagement from "../pages/FullTimeSalaryManagement";
 import ProtectedRoute from "../components/ProtectedRoute";
 
 const AppRoutes = () => {
@@ -53,8 +54,6 @@ const AppRoutes = () => {
         <Route path="/view-job-used-inventory/:jobId" element={<ViewJobUsedInventory />} />
         <Route path="/bookings/:id" element={<BookingDetail />} />
         <Route path="/account/edit" element={<EditAccount />} />
-        <Route path="/employees" element={<EmployeeTable />} />
-        <Route path="/jobs" element={<JobDetails />} />
       </Route>
 
       {/* Owner-only routes */}
@@ -67,12 +66,13 @@ const AppRoutes = () => {
         <Route path="/register-employee" element={<EmployeeRegistrationForm />} />
         <Route path="/add-inventory" element={<InventoryForm />} />
         <Route path="/inventory/inventory-batch" element={<InventoryBatchRegistration />} />
-        
+        <Route path="/employees" element={<EmployeeTable />} />
+        <Route path="/fulltime-salary" element={<FullTimeSalaryManagement />} />
         <Route path="invoice/advance-payment" element={<AdvanceInvoice />} />
         <Route path="invoice/full-payment" element={<FullInvoice />} />
         <Route path="/inventory-batch/:inventoryId" element={<InventoryBatch />} />
         <Route path="/job-used-inventory/:jobId" element={<JobUsedInventory />} />
-        
+        <Route path="/jobs" element={<JobDetails />} />
         <Route path="/edit-job/:jobId" element={<EditJob />} />
         <Route path="/register-salary" element={<RegisterSalary />} />
         <Route path="/invoice/:id" element={<InvoiceDetails />} />
