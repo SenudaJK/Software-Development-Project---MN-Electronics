@@ -238,22 +238,6 @@ const Customers = () => {
     <div className="dark:bg-gray-900 dark:text-gray-100 min-h-screen p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <h1 className="text-2xl font-bold">Customer Management</h1>
-        {/* <button
-          onClick={handleAddCustomer}
-          className={`${
-            isOwner 
-              ? 'bg-blue-600 hover:bg-blue-700' 
-              : 'bg-gray-400 cursor-not-allowed'
-          } text-white px-4 py-2 rounded-md flex items-center transition-colors shadow-sm`}
-          disabled={!isOwner}
-        >
-          {isOwner ? (
-            <UserPlus className="h-5 w-5 mr-2" />
-          ) : (
-            <Lock className="h-5 w-5 mr-2" />
-          )}
-          Add New Customer
-        </button> */}
       </div>
 
       {/* Error message */}
@@ -343,7 +327,7 @@ const Customers = () => {
                             onClick={() => handleUpdateClick(customer)}
                             className={`${
                               isOwner
-                                ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-900/30'
+                                ? 'bg-green-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-900/30'
                                 : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed dark:bg-gray-700/20 dark:text-gray-500 dark:border-gray-700'
                             } px-3 py-1 rounded-md flex items-center border transition-colors`}
                             disabled={!isOwner}

@@ -512,21 +512,21 @@ const FullInvoice = () => {
             )}
           </button>
 
-          <button
+          {/* <button
             onClick={generatePDF}
             disabled={isGeneratingPDF}
             className={`w-full sm:w-auto px-4 py-2 text-white rounded-md focus:outline-none focus:ring ${
               isGeneratingPDF ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 focus:ring-blue-300'
             }`}
-          ></button>
-          {jobDetails && (
-            <button
-              onClick={generatePDF}
-              className="w-full sm:w-auto px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring focus:ring-red-300"
-            >
-              Generate PDF
-            </button>
-          )}
+          ></button> */}
+          {/* {jobDetails && (
+            // <button
+            //   onClick={generatePDF}
+            //   className="w-full sm:w-auto px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring focus:ring-red-300"
+            // >
+            //   Generate PDF
+            // </button>
+          )} */}
         </div>
       </div>
     </div>
