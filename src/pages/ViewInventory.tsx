@@ -217,7 +217,7 @@ const ViewInventory = () => {
             </button>
             
             <button
-              onClick={() => navigate('/add-purchase')}
+              onClick={() => navigate('/inventory/inventory-batch')}
               className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
             >
               <ShoppingCart className="mr-2 h-4 w-4" />

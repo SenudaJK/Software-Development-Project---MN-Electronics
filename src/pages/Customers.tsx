@@ -238,7 +238,7 @@ const Customers = () => {
     <div className="dark:bg-gray-900 dark:text-gray-100 min-h-screen p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <h1 className="text-2xl font-bold">Customer Management</h1>
-        <button
+        {/* <button
           onClick={handleAddCustomer}
           className={`${
             isOwner 
@@ -253,7 +253,7 @@ const Customers = () => {
             <Lock className="h-5 w-5 mr-2" />
           )}
           Add New Customer
-        </button>
+        </button> */}
       </div>
 
       {/* Error message */}

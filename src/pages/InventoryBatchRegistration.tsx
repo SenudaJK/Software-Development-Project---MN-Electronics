@@ -21,11 +21,10 @@ const InventoryBatchRegistration = () => {
     current_quantity?: number;
     price?: number;
   }
-
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]); // List of inventory items
   const [filteredItems, setFilteredItems] = useState<InventoryItem[]>([]); // Filtered items for live search
   const [selectedInventoryId, setSelectedInventoryId] = useState(''); // Selected inventory item
-  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null); // Complete selected item data
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null); // Complete selected item data  
   const [searchQuery, setSearchQuery] = useState(''); // Search query for live search
   const [quantity, setQuantity] = useState('');
   const [costPerItem, setCostPerItem] = useState('');
@@ -34,7 +33,6 @@ const InventoryBatchRegistration = () => {
   const [errors, setErrors] = useState<Array<{ param?: string; msg: string }>>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [recentBatches, setRecentBatches] = useState<any[]>([]);
   
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -51,7 +49,6 @@ const InventoryBatchRegistration = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
   // Fetch inventory items from the backend
   useEffect(() => {
     const fetchInventoryItems = async () => {
@@ -69,18 +66,7 @@ const InventoryBatchRegistration = () => {
     };
 
     fetchInventoryItems();
-    fetchRecentBatches();
   }, []);
-
-  // Fetch recent inventory batches
-  const fetchRecentBatches = async () => {
-    try {
-      const response = await axios.get('http://localhost:5000/api/inventoryBatch/get-purchase-items');
-      setRecentBatches(response.data.slice(0, 5)); // Get only most recent 5 batches
-    } catch (error) {
-      console.error('Error fetching recent batches:', error);
-    }
-  };
 
   // Handle live search
   useEffect(() => {
@@ -135,18 +121,13 @@ const InventoryBatchRegistration = () => {
           Cost_Per_Item: costPerItem,
           Purchase_Date: purchaseDate || new Date().toISOString().split('T')[0],
         }
-      );
-
-      setMessage(response.data.message);
+      );      setMessage(response.data.message);
       setQuantity('');
       setCostPerItem('');
       setPurchaseDate('');
       setSelectedInventoryId('');
       setSearchQuery('');
       setSelectedItem(null);
-      
-      // Refresh recent batches list
-      fetchRecentBatches();
     } catch (error: any) {
       console.error('Error adding inventory batch:', error);
 
@@ -184,11 +165,9 @@ const InventoryBatchRegistration = () => {
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Add new inventory batches to track stock and costs
           </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        </div>        <div className="grid grid-cols-1 gap-6">
           {/* Main Form Section */}
-          <div className="lg:col-span-2">
+          <div>
             <div className="bg-white dark:bg-gray-800 shadow-md rounded-xl overflow-hidden">
               <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
                 <div className="flex items-center space-x-2">
@@ -439,67 +418,25 @@ const InventoryBatchRegistration = () => {
                   </div>
                 )}
               </form>
-            </div>
-          </div>
-
-          {/* Right Side - Recent Batches */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Recent Batches Card */}
-            <div className="bg-white dark:bg-gray-800 shadow-md rounded-xl overflow-hidden">
-              <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4">
-                <div className="flex items-center space-x-2">
-                  <Calendar className="text-white" size={20} />
-                  <h2 className="text-xl font-semibold text-white">
-                    Recent Batches
-                  </h2>
-                </div>
-              </div>
-              
-              <div className="p-4">
-                {recentBatches.length > 0 ? (
-                  <div className="space-y-3">
-                    {recentBatches.map((batch, index) => (
-                      <div key={index} className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-                        <div className="font-medium text-gray-800 dark:text-gray-200">
-                          {batch.product_name}
-                        </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          {batch.Quantity} items at {formatCurrency(batch.Cost_Per_Item)} each
-                        </div>
-                        <div className="flex justify-between items-center mt-2 text-xs text-gray-500 dark:text-gray-400">
-                          <div>Batch #{batch.BatchNo}</div>
-                          <div>{new Date(batch.Purchase_Date).toLocaleDateString()}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-                    <Package size={40} className="mx-auto mb-3 opacity-20" />
-                    <p>No recent batches found</p>
-                  </div>
-                )}
-              </div>
-            </div>
+            </div>          </div>
             
-            {/* Help Card */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-4">
-              <h3 className="text-blue-800 dark:text-blue-300 font-medium mb-2">Tips</h3>
-              <ul className="text-sm space-y-2 text-blue-700 dark:text-blue-400">
-                <li className="flex">
-                  <span className="mr-2">•</span>
-                  <span>Enter the quantity of items purchased in this batch</span>
-                </li>
-                <li className="flex">
-                  <span className="mr-2">•</span>
-                  <span>Cost per item should be the purchase price, not the selling price</span>
-                </li>
-                <li className="flex">
-                  <span className="mr-2">•</span>
-                  <span>The purchase date defaults to today if left empty</span>
-                </li>
-              </ul>
-            </div>
+          {/* Help Card */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-4">
+            <h3 className="text-blue-800 dark:text-blue-300 font-medium mb-2">Tips</h3>
+            <ul className="text-sm space-y-2 text-blue-700 dark:text-blue-400">
+              <li className="flex">
+                <span className="mr-2">•</span>
+                <span>Enter the quantity of items purchased in this batch</span>
+              </li>
+              <li className="flex">
+                <span className="mr-2">•</span>
+                <span>Cost per item should be the purchase price, not the selling price</span>
+              </li>
+              <li className="flex">
+                <span className="mr-2">•</span>
+                <span>The purchase date defaults to today if left empty</span>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
