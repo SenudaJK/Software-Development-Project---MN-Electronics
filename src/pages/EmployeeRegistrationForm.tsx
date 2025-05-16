@@ -85,9 +85,7 @@ const EmployeeRegistrationForm = () => {
       const response = await axios.post(
         "http://localhost:5000/api/employees/register",
         payload
-      );
-
-      // Handle success response
+      );      // Handle success response
       setMessage(response.data.message || "Employee registered successfully!");
       setErrors([]);
       setEmployee({
@@ -103,6 +101,11 @@ const EmployeeRegistrationForm = () => {
         password: "",
         confirmPassword: "",
       });
+      
+      // Display success message for a brief moment before redirecting to login
+      setTimeout(() => {
+        navigate("/"); // Navigate to the login page (root route)
+      }, 2000);
     } catch (error: any) {
       // Handle error response - specific handling for duplicate fields
       if (error.response) {
