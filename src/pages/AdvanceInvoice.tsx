@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const AdvanceInvoice = () => {
   const [jobId, setJobId] = useState('');
   const [jobDetails, setJobDetails] = useState<any>(null);
-  const [advanceAmount, setAdvanceAmount] = useState('');
-  const [message, setMessage] = useState('');
+  const [advanceAmount, setAdvanceAmount] = useState('');  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Get employee data from localStorage
   const employeeData = JSON.parse(localStorage.getItem('employee') || '{}');
   const { id: ownerId, role } = employeeData;
-
-  // Check authorization on component mount
+  // Check authorization on component mount and handle URL parameters
   useEffect(() => {
     if (!employeeData || !employeeData.id) {
       // Not logged in
@@ -33,19 +33,62 @@ const AdvanceInvoice = () => {
 
     // User is logged in and is an owner
     setIsAuthorized(true);
-  }, [employeeData, role]);
-
-  // Fetch job details by Job ID
-  const fetchJobDetails = async () => {
+      // Get jobId from URL query parameters if available
+    const params = new URLSearchParams(location.search);
+    const jobIdParam = params.get('jobId');
+    
+    // Only set jobId and fetch if it's different from current jobId
+    if (jobIdParam && jobIdParam !== jobId) {
+      setJobId(jobIdParam);
+      
+      // Only fetch if we don't already have details for this job
+      if (!jobDetails || jobDetails.job_id !== jobIdParam) {
+        fetchJobDetails(jobIdParam);
+      }
+    }
+  }, [employeeData, role, location.search, jobId, jobDetails, isAuthorized]);  // Fetch job details by Job ID
+  const fetchJobDetails = async (id?: string) => {
     if (!isAuthorized) return;
-
-    try {
-      const response = await axios.get(`http://localhost:5000/api/jobs/job-details/${jobId}`);
-      setJobDetails(response.data);
+    
+    const jobIdToUse = id || jobId;
+    if (!jobIdToUse) return;
+    
+    // Validate job ID format
+    if (!/^\d+$/.test(jobIdToUse)) {
+      setError('Please enter a valid Job ID (numbers only)');
+      return;
+    }    try {
+      setIsLoading(true);
       setError('');
+      const response = await axios.get(`http://localhost:5000/api/jobs/job-details/${jobIdToUse}`);
+        // Check if job status is eligible for advance invoice
+      const ineligibleStatuses = ['Booking Cancelled', 'Cannot Repair', 'Paid', 'Completed'];
+      if (ineligibleStatuses.includes(response.data.repair_status)) {
+        setError(`Cannot create advance invoice for jobs with status "${response.data.repair_status}".`);
+        setJobDetails(null);
+        return;
+      }
+      
+      if (response.data.invoiceExists) {
+        setError(`An advance payment already exists for Job ID ${jobIdToUse}. Please use a different Job ID.`);
+        setJobDetails(null);
+      } else {
+        setJobDetails(response.data);
+        setError('');
+      }
     } catch (err: any) {
       setJobDetails(null);
-      setError(err.response?.data?.message || 'Error fetching job details');
+      
+      // More specific error messages
+      if (err.response?.status === 404) {
+        setError('Job ID not found. Please check and try again.');
+      } else if (err.response?.status === 409) {
+        setError('An advance payment already exists for this job.');
+      } else {
+        setError(err.response?.data?.message || 'Error fetching job details');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -142,9 +185,8 @@ const AdvanceInvoice = () => {
                   onChange={(e) => setJobId(e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
                   placeholder="Enter Job ID"
-                />
-                <button
-                  onClick={fetchJobDetails}
+                />                <button
+                  onClick={() => fetchJobDetails()}
                   className="absolute right-2 top-2 text-gray-500 dark:text-gray-300"
                 >
                   <svg
@@ -187,12 +229,13 @@ const AdvanceInvoice = () => {
                 <strong>Phone Numbers:</strong> {jobDetails.phone_numbers}
               </p>
             </div>
-          )}
-
-          {error && (
-            <p className="text-sm text-red-500 mt-2">
-              {error}
-            </p>
+          )}          {error && (
+            <div className="mt-4 p-4 bg-red-100 border border-red-200 text-red-700 rounded-md dark:bg-red-900 dark:border-red-700 dark:text-red-200 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>{error}</span>
+            </div>
           )}
         </div>
 

@@ -563,24 +563,55 @@ const JobDetails: React.FC = () => {
                         job.handover_date 
                           ? new Date(job.handover_date).toLocaleDateString() 
                           : "Not set"
-                      }</td>
-                      <td className="px-4 py-3">
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleUpdateClick(job.job_id)}
-                            className="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300 dark:bg-blue-700 dark:hover:bg-blue-800"
-                          >
-                            <Edit className="h-4 w-4" />
-                            <span className="ml-1">Update</span>
-                          </button>
-                          
-                          <button
-                            onClick={() => navigate(`/view-job-used-inventory/${job.job_id}`)}
-                            className="p-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 focus:outline-none focus:ring focus:ring-purple-300 dark:bg-purple-700 dark:hover:bg-purple-800"
-                          >
-                            <ClipboardList className="h-4 w-4" />
-                            <span className="ml-1">View Inventory</span>
-                          </button>
+                      }</td>                      <td className="px-4 py-3">
+                        <div className="flex flex-col md:flex-row gap-2">
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleUpdateClick(job.job_id)}
+                              className="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300 dark:bg-blue-700 dark:hover:bg-blue-800"
+                            >
+                              <Edit className="h-4 w-4" />
+                              <span className="ml-1">Update</span>
+                            </button>
+                            
+                            <button
+                              onClick={() => navigate(`/view-job-used-inventory/${job.job_id}`)}
+                              className="p-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 focus:outline-none focus:ring focus:ring-purple-300 dark:bg-purple-700 dark:hover:bg-purple-800"
+                            >
+                              <ClipboardList className="h-4 w-4" />
+                              <span className="ml-1">View Inventory</span>
+                            </button>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => navigate(`/invoice/full-payment?jobId=${job.job_id}`)}
+                              className="p-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300 dark:bg-green-700 dark:hover:bg-green-800"
+                            >
+                              <FileText className="h-4 w-4" />
+                              <span className="ml-1">Full Invoice</span>
+                            </button>                            <div className="relative group">
+                              <button                                onClick={() => {
+                                  if (!['Booking Cancelled', 'Cannot Repair', 'Paid', 'Completed'].includes(job.repair_status)) {
+                                    navigate(`/invoice/advance-payment?jobId=${job.job_id}`);
+                                  }
+                                }}
+                                className={`p-2 ${
+                                  ['Booking Cancelled', 'Cannot Repair', 'Paid', 'Completed'].includes(job.repair_status)
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-amber-500 hover:bg-amber-600 focus:ring focus:ring-amber-300 dark:bg-amber-700 dark:hover:bg-amber-800'
+                                } text-white rounded-md focus:outline-none`}
+                                disabled={['Booking Cancelled', 'Cannot Repair', 'Paid', 'Completed'].includes(job.repair_status)}
+                                title={['Booking Cancelled', 'Cannot Repair', 'Paid', 'Completed'].includes(job.repair_status) ? `Advance Invoice not available for ${job.repair_status} jobs` : ''}
+                              >
+                                <Download className="h-4 w-4" />
+                                <span className="ml-1">Advance Invoice</span>
+                              </button>                              {['Booking Cancelled', 'Cannot Repair', 'Paid', 'Completed'].includes(job.repair_status) && (
+                                <div className="absolute bottom-full mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded p-1 w-48 z-10">
+                                  Advance Invoice not available for {job.repair_status} jobs
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </td>
                     </tr>

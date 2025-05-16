@@ -32,6 +32,7 @@ import RegisterWarrantyClaim from "../pages/RegisterWarrantyClaim";
 import BookingDetail from "../pages/BookingDetail";
 import EditAccount from "../pages/EditAccount";
 import FullTimeSalaryManagement from "../pages/FullTimeSalaryManagement";
+import Reports from "../pages/Reports";
 import NotFound from "../pages/NotFound";
 import ProtectedRoute from "../components/ProtectedRoute";
 
@@ -79,6 +80,7 @@ const AppRoutes = () => {
         <Route path="/invoice/:id" element={<InvoiceDetails />} />
         <Route path="/advance-payment/:jobId" element={<AdvanceInvoiceDetail />} />
         <Route path="/register-warranty-claim/:jobId" element={<RegisterWarrantyClaim />} />
+        <Route path="/reports" element={<Reports />} />
       </Route>
       
       {/* 404 Not Found route - this should be the last route */}

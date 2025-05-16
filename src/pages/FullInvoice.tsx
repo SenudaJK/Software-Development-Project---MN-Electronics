@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-const FullInvoice = () => {
-  const [jobId, setJobId] = useState('');
+const FullInvoice = () => {  const [jobId, setJobId] = useState('');
   const [jobDetails, setJobDetails] = useState<any>(null);
   const [inventoryDetails, setInventoryDetails] = useState<any[]>([]);
   const [labourCost, setLabourCost] = useState('');
@@ -19,11 +18,11 @@ const FullInvoice = () => {
   const [warrantyEligible, setWarrantyEligible] = useState<boolean | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  
   // Get employee data from localStorage
   const employeeData = JSON.parse(localStorage.getItem('employee') || '{}');
-  const { id: ownerId, role } = employeeData;
-
-  // Check if user is authorized (owner)
+  const { id: ownerId, role } = employeeData;  // Check if user is authorized (owner) and handle URL parameters
   useEffect(() => {
     if (!employeeData || !employeeData.id) {
       setError('You must be logged in to create invoices');
@@ -34,7 +33,21 @@ const FullInvoice = () => {
       setError('Only owners can create invoices');
       return;
     }
-  }, [employeeData, role]);
+    
+    // Get jobId from URL query parameters if available
+    const params = new URLSearchParams(location.search);
+    const jobIdParam = params.get('jobId');
+    
+    // Only set jobId and fetch if it's different from current jobId
+    if (jobIdParam && jobIdParam !== jobId) {
+      setJobId(jobIdParam);
+      
+      // Only fetch if we don't already have details for this job
+      if (!jobDetails || jobDetails.job_id !== jobIdParam) {
+        fetchJobDetails(jobIdParam);
+      }
+    }
+  }, [employeeData, role, location.search, jobId, jobDetails]);
 
   // Update calculations when values change
   useEffect(() => {
@@ -63,33 +76,57 @@ const FullInvoice = () => {
     // Remaining is total - advance
     const remaining = total - advance;
     setRemainingAmount(remaining);
-  };
-
-  // Fetch job details and inventory details by Job ID
-  const fetchJobDetails = async () => {
-    if (!jobId) {
+  };  // Fetch job details and inventory details by Job ID
+  const fetchJobDetails = async (id?: string) => {
+    const jobIdToUse = id || jobId;
+    
+    if (!jobIdToUse) {
       setError('Please enter a Job ID');
+      return;
+    }
+    
+    // Validate job ID format
+    if (!/^\d+$/.test(jobIdToUse)) {
+      setError('Please enter a valid Job ID (numbers only)');
       return;
     }
   
     setIsLoading(true);
     setError('');
     setMessage('');
-  
     try {
       // Fetch job details
-      const response = await axios.get(`http://localhost:5000/api/invoices/job-invoice/${jobId}`);
+      const response = await axios.get(`http://localhost:5000/api/invoices/job-invoice/${jobIdToUse}`);
       const data = response.data;
-  
-      setJobDetails(data.jobDetails); // Set job details
-      setInventoryDetails(data.inventoryDetails || []); // Set inventory details
-      setTotalInventoryCost(parseFloat(data.totalInventoryCost) || 0); // Set total inventory cost
-      setAdvanceAmount(data.advanceAmount || '0'); // Set advance amount
-      setLabourCost(''); // Reset labour cost after fetching job details
-      calculateTotals(); // Recalculate totals
+      
+      // Check if invoice already exists
+      if (data.invoiceExists) {
+        setError(`An invoice already exists for Job ID ${jobIdToUse}. Please use a different Job ID.`);
+        setJobDetails(null);
+        setInventoryDetails([]);
+        setAdvanceAmount('0');
+        setTotalAmount(0);
+        setRemainingAmount(0);
+      } else {
+        setJobDetails(data.jobDetails); // Set job details
+        setInventoryDetails(data.inventoryDetails || []); // Set inventory details
+        setTotalInventoryCost(parseFloat(data.totalInventoryCost) || 0); // Set total inventory cost
+        setAdvanceAmount(data.advanceAmount || '0'); // Set advance amount
+        setLabourCost(''); // Reset labour cost after fetching job details
+        calculateTotals(); // Recalculate totals
+      }
     } catch (err: any) {
       console.error('Error fetching job details:', err);
-      setError(err.response?.data?.message || 'Error fetching job details');
+      
+      // Handle specific error cases with clear messages
+      if (err.response?.status === 409) {
+        setError('An invoice already exists for this job ID.');
+      } else if (err.response?.status === 404) {
+        setError('Job ID not found. Please check and try again.');
+      } else {
+        setError(err.response?.data?.message || 'Error fetching job details');
+      }
+      
       setJobDetails(null);
       setInventoryDetails([]);
       setAdvanceAmount('0'); // Reset advance amount on error
@@ -254,30 +291,29 @@ const FullInvoice = () => {
                 />
               </div>
             </div>
-            <div className="self-end">
-              <button
-                onClick={fetchJobDetails}
+            <div className="self-end">              <button
+                onClick={() => fetchJobDetails()}
                 className="w-full sm:w-auto px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300 disabled:bg-blue-300"
                 disabled={isLoading || !jobId}
-              >
-                {isLoading ? (
+              >                {isLoading ? (
                   <span className="flex items-center justify-center">
                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Loading...
+                    Fetching...
                   </span>
                 ) : 'Fetch Details'}
               </button>
             </div>
           </div>
-        </div>
-
-        {/* Error Message */}
+        </div>        {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-md dark:bg-red-900 dark:border-red-700 dark:text-red-200">
-            {error}
+          <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-md dark:bg-red-900 dark:border-red-700 dark:text-red-200 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>{error}</span>
           </div>
         )}
 

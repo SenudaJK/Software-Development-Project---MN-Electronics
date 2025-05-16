@@ -17,6 +17,7 @@ import {
   ShoppingCart,
   CircleDot,
   FileCheck,
+  BarChart,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -69,9 +70,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
     return () => setter(prev => !prev);
   };
 
-  // Only show dashboard for owner role
+  // Only show dashboard and reports for owner role
   const menuItems = role === 'owner' 
-    ? [{ path: '/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' }]
+    ? [
+        { path: '/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
+        { path: '/reports', icon: <BarChart size={20} />, label: 'Reports' }
+      ]
     : [];
 
   const employeeItems = [

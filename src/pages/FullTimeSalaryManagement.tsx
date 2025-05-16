@@ -47,6 +47,63 @@ const FullTimeSalaryManagement = () => {
     const now = new Date();
     return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
   });
+  
+  // State to track employees with existing salary records for the selected month
+  const [employeesWithExistingSalary, setEmployeesWithExistingSalary] = useState<string[]>([]);
+  // Check for existing salary records for the selected month
+  const checkExistingSalaries = async (employeeIds: string[]) => {
+    setError('');
+    
+    try {
+      // Extract year and month from selectedMonth (format: YYYY-MM)
+      const [year, month] = selectedMonth.split('-');
+      
+      // First try to use the API if it exists
+      try {
+        // Call API to check if any employees already have salary records for this month
+        const response = await axios.post('http://localhost:5000/api/salary/check-existing-salaries', {
+          employeeIds,
+          year,
+          month
+        });
+        
+        // Return array of employee IDs that already have salary records
+        return response.data.employeesWithExistingSalary || [];
+      } catch (apiError) {
+        console.warn('API for checking existing salaries not available, falling back to client-side validation', apiError);
+        
+        // If the API call fails, fall back to checking with employee data we already have
+        // This is a temporary client-side validation until the backend endpoint is implemented
+        const existingRecords: string[] = [];
+        
+        // Check if any selected employee has a last_payment_date that matches the selected month
+        for (const employeeId of employeeIds) {
+          const employee = employees.find(emp => emp.id === employeeId);
+          if (employee && employee.last_payment_date) {
+            // Parse the last payment date to check if it's in the current selected month
+            try {
+              const paymentDate = new Date(employee.last_payment_date);
+              const paymentMonth = (paymentDate.getMonth() + 1).toString().padStart(2, '0');
+              const paymentYear = paymentDate.getFullYear().toString();
+              
+              if (paymentYear === year && paymentMonth === month) {
+                existingRecords.push(employeeId);
+              }
+            } catch (e) {
+              // If date parsing fails, skip this check
+              console.error('Error parsing payment date:', e);
+            }
+          }
+        }
+        
+        return existingRecords;
+      }
+    } catch (err: any) {
+      console.error('Error checking existing salaries:', err);
+      setError(err.response?.data?.message || 'Error checking existing salary records');
+      return [];
+    }
+  };
 
   // Fetch full-time employees
   const fetchFullTimeEmployees = async () => {
@@ -97,19 +154,51 @@ const FullTimeSalaryManagement = () => {
     );
     
     setFilteredEmployees(filtered);
-  }, [employees, searchQuery]);
-
-  // Toggle employee selection
+  }, [employees, searchQuery]);  // Toggle employee selection
   const toggleEmployeeSelection = (id: string) => {
+    // First check if employee already has a salary record for this month
+    const employee = employees.find(emp => emp.id === id);
+    if (employee && employee.last_payment_date) {
+      try {
+        const [currentYear, currentMonth] = selectedMonth.split('-');
+        const paymentDate = new Date(employee.last_payment_date);
+        const paymentMonth = (paymentDate.getMonth() + 1).toString().padStart(2, '0');
+        const paymentYear = paymentDate.getFullYear().toString();
+        
+        if (paymentYear === currentYear && paymentMonth === currentMonth) {
+          // Employee already has a salary record for this month, show warning
+          setError(`${employee.firstName} ${employee.lastName} already has a salary record for ${selectedMonth}. Only one salary record per month is allowed.`);
+          return; // Don't toggle selection
+        }
+      } catch (e) {
+        // If date parsing fails, continue with toggle
+        console.error('Error parsing payment date:', e);
+      }
+    }
+    
     setEmployees(prevEmployees =>
       prevEmployees.map(emp =>
         emp.id === id ? { ...emp, isSelected: !emp.isSelected } : emp
       )
     );
+    
+    // Clear any previous error messages when successfully toggling selection
+    setError('');
   };
-
   // Update salary field for an employee
   const updateSalaryField = (id: string, field: string, value: number) => {
+    // Validate input based on the field type
+    if (field === 'basicSalary' && value <= 0) {
+      setError('Basic salary must be greater than 0');
+      return;
+    } else if ((field === 'overtimePay' || field === 'bonus' || field === 'deductions') && value < 0) {
+      setError(`${field.charAt(0).toUpperCase() + field.slice(1)} cannot be negative`);
+      return;
+    } else {
+      // Clear any previous error if the input is valid
+      setError('');
+    }
+    
     setEmployees(prevEmployees =>
       prevEmployees.map(emp =>
         emp.id === id ? { ...emp, [field]: value } : emp
@@ -136,36 +225,80 @@ const FullTimeSalaryManagement = () => {
       setError('Please select at least one employee to record salary');
       return;
     }
-    
-    // Validate salary data
-    const invalidEmployees = selectedEmployees.filter(emp => 
+      // Validate salary data - basic salary must be positive
+    const invalidBasicSalaryEmployees = selectedEmployees.filter(emp => 
       !emp.basicSalary || emp.basicSalary <= 0
     );
     
-    if (invalidEmployees.length > 0) {
-      setError(`Please enter valid basic salary for ${invalidEmployees.map(e => e.firstName).join(', ')}`);
+    if (invalidBasicSalaryEmployees.length > 0) {
+      setError(`Please enter valid basic salary (greater than 0) for ${invalidBasicSalaryEmployees.map(e => e.firstName).join(', ')}`);
       return;
     }
     
-    // Prepare data for submission
+    // Validate that overtime, bonus, and deductions are non-negative
+    const invalidOvertimeEmployees = selectedEmployees.filter(emp => 
+      emp.overtimePay !== undefined && emp.overtimePay < 0
+    );
+    
+    if (invalidOvertimeEmployees.length > 0) {
+      setError(`Overtime pay cannot be negative for ${invalidOvertimeEmployees.map(e => e.firstName).join(', ')}`);
+      return;
+    }
+    
+    const invalidBonusEmployees = selectedEmployees.filter(emp => 
+      emp.bonus !== undefined && emp.bonus < 0
+    );
+    
+    if (invalidBonusEmployees.length > 0) {
+      setError(`Bonus cannot be negative for ${invalidBonusEmployees.map(e => e.firstName).join(', ')}`);
+      return;
+    }
+    
+    const invalidDeductionsEmployees = selectedEmployees.filter(emp => 
+      emp.deductions !== undefined && emp.deductions < 0
+    );
+    
+    if (invalidDeductionsEmployees.length > 0) {
+      setError(`Deductions cannot be negative for ${invalidDeductionsEmployees.map(e => e.firstName).join(', ')}`);
+      return;
+    }
+      // Check for existing salary records for the selected month
+    const employeeIds = selectedEmployees.map(emp => emp.id);
+    const existingSalaryRecords = await checkExistingSalaries(employeeIds);
+    
+    if (existingSalaryRecords.length > 0) {
+      // Find employee names for the IDs with existing records
+      const employeesWithExisting = selectedEmployees.filter(emp => 
+        existingSalaryRecords.includes(emp.id)
+      );
+      
+      // Show error with employee names
+      const employeeNames = employeesWithExisting.map(emp => 
+        `${emp.firstName} ${emp.lastName}`
+      ).join(', ');
+      
+      setError(`Salary records for ${employeeNames} already exist for ${selectedMonth}. Only one salary record per month is allowed.`);
+      return;
+    }
+      // Prepare data for submission
     const salaryData = selectedEmployees.map(emp => ({
       employeeId: emp.id,
       basicSalary: emp.basicSalary || 0,
       overtimePay: emp.overtimePay || 0,
       bonus: emp.bonus || 0,
-      deductions: emp.deductions || 0
+      deductions: emp.deductions || 0,
+      salaryMonth: selectedMonth // Include the selected month in the payload
     }));
     
     setSubmitting(true);
     setError('');
     setSuccess('');
-    
-    try {
-      const response = await axios.post('http://localhost:5000/api/salary/insert-full-time-salary', {
+      try {
+      await axios.post('http://localhost:5000/api/salary/insert-full-time-salary', {
         salaryData
       });
       
-      setSuccess(`Successfully recorded salary for ${selectedEmployees.length} employees`);
+      setSuccess(`Successfully recorded salary for ${selectedEmployees.length} employees for ${selectedMonth}`);
       
       // Reset form and refresh data
       fetchFullTimeEmployees();
@@ -176,11 +309,7 @@ const FullTimeSalaryManagement = () => {
       setSubmitting(false);
     }
   };
-
-  // Format currency values with LKR symbol
-  const formatCurrency = (amount: number): string => {
-    return `LKR ${amount.toFixed(2)}`;
-  };
+  // Format currency is directly used in the component
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
@@ -212,11 +341,14 @@ const FullTimeSalaryManagement = () => {
         )}
         
         {/* Salary period selector */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 mb-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4 flex items-center">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 mb-6 border border-gray-200 dark:border-gray-700">          <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2 flex items-center">
             <Calendar className="mr-2 h-5 w-5" />
             Salary Period
           </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 flex items-center">
+            <AlertCircle className="mr-2 h-4 w-4 text-amber-500" />
+            Note: Only one salary record per month is allowed for each employee
+          </p>
           
           <div className="flex gap-4 items-center">
             <div className="w-64">
@@ -283,16 +415,15 @@ const FullTimeSalaryManagement = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left text-gray-600 dark:text-gray-400">
-                <thead className="bg-gray-50 dark:bg-gray-700 text-xs uppercase text-gray-700 dark:text-gray-300">
+              <table className="w-full text-sm text-left text-gray-600 dark:text-gray-400">                <thead className="bg-gray-50 dark:bg-gray-700 text-xs uppercase text-gray-700 dark:text-gray-300">
                   <tr>
                     <th className="px-4 py-3">Select</th>
                     <th className="px-4 py-3">Employee</th>
                     <th className="px-4 py-3">Role</th>
-                    <th className="px-4 py-3">Basic Salary (LKR)</th>
-                    <th className="px-4 py-3">Overtime (LKR)</th>
-                    <th className="px-4 py-3">Bonus (LKR)</th>
-                    <th className="px-4 py-3">Deductions (LKR)</th>
+                    <th className="px-4 py-3" title="Required - Must be greater than 0">Basic Salary (LKR) *</th>
+                    <th className="px-4 py-3" title="Optional - Must be 0 or greater">Overtime (LKR)</th>
+                    <th className="px-4 py-3" title="Optional - Must be 0 or greater">Bonus (LKR)</th>
+                    <th className="px-4 py-3" title="Optional - Must be 0 or greater">Deductions (LKR)</th>
                     <th className="px-4 py-3">Total (LKR)</th>
                     <th className="px-4 py-3">Last Payment</th>
                   </tr>
@@ -323,9 +454,10 @@ const FullTimeSalaryManagement = () => {
                         <div className="relative rounded-md shadow-sm">
                           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <span className="text-gray-500 dark:text-gray-400 text-xs">LKR</span>
-                          </div>
-                          <input
+                          </div>                          <input
                             type="number"
+                            min="0.01"
+                            step="0.01"
                             disabled={!employee.isSelected}
                             value={employee.basicSalary || ''}
                             onChange={(e) => updateSalaryField(employee.id, 'basicSalary', parseFloat(e.target.value) || 0)}
@@ -341,9 +473,10 @@ const FullTimeSalaryManagement = () => {
                         <div className="relative rounded-md shadow-sm">
                           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <span className="text-gray-500 dark:text-gray-400 text-xs">LKR</span>
-                          </div>
-                          <input
+                          </div>                          <input
                             type="number"
+                            min="0"
+                            step="0.01"
                             disabled={!employee.isSelected}
                             value={employee.overtimePay || ''}
                             onChange={(e) => updateSalaryField(employee.id, 'overtimePay', parseFloat(e.target.value) || 0)}
@@ -359,9 +492,10 @@ const FullTimeSalaryManagement = () => {
                         <div className="relative rounded-md shadow-sm">
                           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <span className="text-gray-500 dark:text-gray-400 text-xs">LKR</span>
-                          </div>
-                          <input
+                          </div>                          <input
                             type="number"
+                            min="0"
+                            step="0.01"
                             disabled={!employee.isSelected}
                             value={employee.bonus || ''}
                             onChange={(e) => updateSalaryField(employee.id, 'bonus', parseFloat(e.target.value) || 0)}
@@ -377,9 +511,10 @@ const FullTimeSalaryManagement = () => {
                         <div className="relative rounded-md shadow-sm">
                           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <span className="text-gray-500 dark:text-gray-400 text-xs">LKR</span>
-                          </div>
-                          <input
+                          </div>                          <input
                             type="number"
+                            min="0"
+                            step="0.01"
                             disabled={!employee.isSelected}
                             value={employee.deductions || ''}
                             onChange={(e) => updateSalaryField(employee.id, 'deductions', parseFloat(e.target.value) || 0)}
@@ -410,9 +545,16 @@ const FullTimeSalaryManagement = () => {
               </table>
             </div>
           )}
+            {/* Salary validation rules */}
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+            <p className="text-sm text-blue-700 dark:text-blue-300 flex items-center">
+              <AlertCircle className="h-4 w-4 mr-2 text-blue-500" />
+              <span><strong>Validation Rules:</strong> Basic salary must be greater than 0. Overtime, bonus, and deductions must be 0 or greater.</span>
+            </p>
+          </div>
           
           {/* Summary and Action Buttons */}
-          <div className="mt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+          <div className="mt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
             <div className="mb-4 sm:mb-0">
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Selected: <span className="font-medium">{employees.filter(e => e.isSelected).length}</span> of {employees.length} employees
