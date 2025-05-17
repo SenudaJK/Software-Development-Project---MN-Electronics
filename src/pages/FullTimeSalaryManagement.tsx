@@ -175,16 +175,22 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
       }
     }
     
-    setEmployees(prevEmployees =>
-      prevEmployees.map(emp =>
+    // Update employees state
+    const updatedEmployees = employees.map(emp =>
+      emp.id === id ? { ...emp, isSelected: !emp.isSelected } : emp
+    );
+    setEmployees(updatedEmployees);
+    
+    // Also update filteredEmployees to ensure UI reflects changes immediately
+    setFilteredEmployees(prevFilteredEmployees =>
+      prevFilteredEmployees.map(emp =>
         emp.id === id ? { ...emp, isSelected: !emp.isSelected } : emp
       )
     );
     
     // Clear any previous error messages when successfully toggling selection
     setError('');
-  };
-  // Update salary field for an employee
+  };// Update salary field for an employee
   const updateSalaryField = (id: string, field: string, value: number) => {
     // Validate input based on the field type
     if (field === 'basicSalary' && value <= 0) {
@@ -198,29 +204,52 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
       setError('');
     }
     
+    // Update the employees state with the new value
     setEmployees(prevEmployees =>
       prevEmployees.map(emp =>
         emp.id === id ? { ...emp, [field]: value } : emp
       )
     );
+    
+    // Also update filteredEmployees to ensure UI reflects changes immediately
+    setFilteredEmployees(prevFilteredEmployees =>
+      prevFilteredEmployees.map(emp =>
+        emp.id === id ? { ...emp, [field]: value } : emp
+      )
+    );
   };
-
   // Toggle editing mode for basic salary
   const toggleEditBasicSalary = (id: string) => {
-    setEmployees(prevEmployees =>
-      prevEmployees.map(emp =>
+    // Get the current state of editing for this employee
+    const employee = employees.find(emp => emp.id === id);
+    const isCurrentlyEditing = employee?.isEditingBasicSalary || false;
+    const newBasicSalary = !isCurrentlyEditing ? employee?.Basic_Salary || 0 : employee?.basicSalary || 0;
+    
+    // Update both state arrays for consistent UI
+    const updatedEmployees = employees.map(emp =>
+      emp.id === id 
+        ? { 
+            ...emp, 
+            isEditingBasicSalary: !isCurrentlyEditing,
+            basicSalary: newBasicSalary
+          } 
+        : emp
+    );
+    
+    setEmployees(updatedEmployees);
+    
+    setFilteredEmployees(prevFiltered =>
+      prevFiltered.map(emp =>
         emp.id === id 
           ? { 
               ...emp, 
-              isEditingBasicSalary: !emp.isEditingBasicSalary,
-              // When starting to edit, initialize the editable field with the current value
-              basicSalary: !emp.isEditingBasicSalary ? emp.Basic_Salary || 0 : emp.basicSalary
+              isEditingBasicSalary: !isCurrentlyEditing,
+              basicSalary: newBasicSalary
             } 
           : emp
       )
     );
   };
-
   // Save basic salary to database
   const saveBasicSalary = async (id: string) => {
     const employee = employees.find(emp => emp.id === id);
@@ -239,18 +268,31 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
     
     try {
       setSubmitting(true);
-        // Call the API to update the basic salary
+      // Call the API to update the basic salary
       await axios.put(`http://localhost:5000/api/salary/update-basic-salary/${id}`, {
         basicSalary
       });
       
-      // Update the employee's Basic_Salary in the state
-      setEmployees(prevEmployees =>
-        prevEmployees.map(emp =>
+      // Update the employee's Basic_Salary in both state arrays
+      const updatedEmployees = employees.map(emp =>
+        emp.id === id 
+          ? { 
+              ...emp, 
+              Basic_Salary: basicSalary,
+              basicSalary: basicSalary, // Ensure basicSalary is also updated
+              isEditingBasicSalary: false
+            } 
+          : emp
+      );
+      
+      setEmployees(updatedEmployees);
+      setFilteredEmployees(prevFiltered => 
+        prevFiltered.map(emp =>
           emp.id === id 
             ? { 
                 ...emp, 
                 Basic_Salary: basicSalary,
+                basicSalary: basicSalary, // Ensure basicSalary is also updated
                 isEditingBasicSalary: false
               } 
             : emp
@@ -268,16 +310,18 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
     } finally {
       setSubmitting(false);
     }
-  };
-
-  // Calculate total salary for an employee
+  };// Calculate total salary for an employee
+  // Adds overtime and bonus to basic salary, and subtracts deductions
   const calculateTotalSalary = (employee: Employee): number => {
-    const basic = employee.basicSalary || 0;
-    const overtime = employee.overtimePay || 0;
-    const bonus = employee.bonus || 0;
-    const deductions = employee.deductions || 0;
+    // Get values with fallback to 0 if undefined
+    const basic = parseFloat((employee.basicSalary || 0).toString());
+    const overtime = parseFloat((employee.overtimePay || 0).toString());
+    const bonus = parseFloat((employee.bonus || 0).toString());
+    const deductions = parseFloat((employee.deductions || 0).toString());
     
-    return basic + overtime + bonus - deductions;
+    // Calculate and return the total (ensure it's a valid number)
+    const total = basic + overtime + bonus - deductions;
+    return isNaN(total) ? 0 : total;
   };
 
   // Submit salary data for selected employees
@@ -626,20 +670,20 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
                   <th className="px-4 py-3">
                     <span title="Select/deselect employee for salary entry">Select</span>
                   </th>
-                  <th className="px-4 py-3">Employee</th>
-                  <th className="px-4 py-3">
-                    <span title="Basic salary must be greater than 0">Basic Salary (LKR)</span>
+                  <th className="px-4 py-3">Employee</th>                  <th className="px-4 py-3">
+                    <span title="Basic salary must be greater than 0. This is the base payment amount.">Basic Salary (LKR)</span>
                   </th>
                   <th className="px-4 py-3">
-                    <span title="Overtime pay must be 0 or greater">Overtime Pay (LKR)</span>
+                    <span title="Overtime pay must be 0 or greater. This amount will be added to the basic salary in the total calculation.">Overtime Pay (LKR)</span>
                   </th>
                   <th className="px-4 py-3">
-                    <span title="Bonus must be 0 or greater">Bonus (LKR)</span>
+                    <span title="Bonus must be 0 or greater. This amount will be added to the basic salary in the total calculation.">Bonus (LKR)</span>
                   </th>
                   <th className="px-4 py-3">
-                    <span title="Deductions must be 0 or greater">Deductions (LKR)</span>
+                    <span title="Deductions must be 0 or greater. This amount will be subtracted from the total of basic salary, overtime, and bonus.">Deductions (LKR)</span>
+                  </th><th className="px-4 py-3">
+                    <span title="Total Salary = Basic Salary + Overtime Pay + Bonus - Deductions">Total Salary (LKR)</span>
                   </th>
-                  <th className="px-4 py-3">Total (LKR)</th>
                 </tr>
               </thead>
               <tbody>
@@ -723,8 +767,7 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
                       </div>
                     </td>
                     <td className="px-4 py-4">
-                      <div className="relative rounded-md shadow-sm">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <div className="relative rounded-md shadow-sm">                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                           <span className="text-gray-500 dark:text-gray-400 text-xs">LKR</span>
                         </div>
                         <input
@@ -741,21 +784,29 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
                           disabled={!employee.isSelected}
                         />
                       </div>
-                    </td>
-                    <td className="px-4 py-4 font-medium text-gray-800 dark:text-gray-200">
-                      LKR {calculateTotalSalary(employee).toFixed(2)}
+                    </td>                    <td className="px-4 py-4 font-medium text-gray-800 dark:text-gray-200">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-lg">LKR {calculateTotalSalary(employee).toFixed(2)}</span>
+                        {employee.isSelected && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Formula: LKR {employee.basicSalary || 0} + LKR {employee.overtimePay || 0} + LKR {employee.bonus || 0} - LKR {employee.deductions || 0}
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          
-          {/* Salary validation rules */}
+            {/* Salary validation rules */}
           <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
             <p className="text-sm text-blue-700 dark:text-blue-300 flex items-center">
-              <AlertCircle className="h-4 w-4 mr-2 text-blue-500" />
-              <span><strong>Validation Rules:</strong> Basic salary must be greater than 0. Overtime, bonus, and deductions must be 0 or greater.</span>
+              <AlertCircle className="h-4 w-4 mr-2 text-blue-500" />              <span>
+                <strong>Validation Rules:</strong> Basic salary must be greater than 0. Overtime, bonus, and deductions must be 0 or greater. 
+                <br />
+                <strong>Calculation Formula:</strong> Total Salary = Basic Salary + Overtime Pay + Bonus - Deductions
+              </span>
             </p>
           </div>
           
@@ -764,10 +815,9 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
             <div className="mb-4 sm:mb-0">
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Selected: <span className="font-medium">{employees.filter(e => e.isSelected).length}</span> of {employees.length} employees
-              </p>
-              {employees.filter(e => e.isSelected).length > 0 && (
+              </p>              {employees.filter(e => e.isSelected).length > 0 && (
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Total payment: <span className="font-medium">LKR {
+                  Total payment: <span className="font-medium text-green-600 dark:text-green-400">LKR {
                     employees
                       .filter(e => e.isSelected)
                       .reduce((sum, emp) => sum + calculateTotalSalary(emp), 0)
@@ -777,18 +827,29 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
               )}
             </div>
             
-            <div className="flex gap-3">
-              <button
-                onClick={() => {                  // Reset all selections
-                  setEmployees(prevEmployees => 
-                    prevEmployees.map(emp => ({
-                      ...emp,
-                      isSelected: false,
-                      basicSalary: emp.Basic_Salary || 0, // Set to the stored Basic_Salary
-                      overtimePay: 0,
-                      bonus: 0,
-                      deductions: 0
-                    }))
+            <div className="flex gap-3">              <button
+                onClick={() => {
+                  // Reset all selections
+                  const resetEmployees = employees.map(emp => ({
+                    ...emp,
+                    isSelected: false,
+                    basicSalary: emp.Basic_Salary || 0, // Set to the stored Basic_Salary
+                    overtimePay: 0,
+                    bonus: 0,
+                    deductions: 0
+                  }));
+                  
+                  // Update both state arrays together
+                  setEmployees(resetEmployees);
+                  setFilteredEmployees(
+                    searchQuery 
+                      ? resetEmployees.filter(emp => 
+                          emp.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          emp.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          emp.id.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                      : resetEmployees
                   );
                 }}
                 className="px-4 py-2 border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center"
