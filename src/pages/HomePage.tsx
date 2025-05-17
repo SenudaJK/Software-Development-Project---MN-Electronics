@@ -256,11 +256,11 @@ const HomePage: React.FC = () => {
                   </Link>
                   
                   <Link 
-                    to={`/repair-details/${jobDetails.job_id}`}
-                    className="bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary-dark transition-colors duration-200 inline-flex items-center"
+                    // to={`/repair-details/${jobDetails.job_id}`}
+                    // className="bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary-dark transition-colors duration-200 inline-flex items-center"
                   >
-                    Detailed Status
-                    <ChevronRight size={16} className="ml-1" />
+                    {/* Detailed Status */}
+                    {/* <ChevronRight size={16} className="ml-1" /> */}
                   </Link>
                 </div>
               </div>

@@ -543,12 +543,6 @@ const DashboardPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <div className="flex items-center space-x-2">
-                          <Link
-                            to={`/repair-details/${job.job_id}`}
-                            className="text-primary hover:text-primary-dark"
-                          >
-                            View
-                          </Link>
                           {/* Show invoice button for paid jobs */}
                           {job.repair_status === 'Paid' && (
                             <Link

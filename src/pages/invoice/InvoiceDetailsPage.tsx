@@ -276,8 +276,7 @@ const InvoiceDetailsPage: React.FC = () => {
 
   return (
     <div className="page-container">
-      {/* Non-printable controls */}
-      <div className="flex justify-between items-center mb-6 print-hidden">
+      {/* Non-printable controls */}      <div className="flex justify-between items-center mb-6 print-hidden">
         <Button
           variant="outline"
           onClick={() => navigate(-1)}
@@ -286,17 +285,6 @@ const InvoiceDetailsPage: React.FC = () => {
           Back
         </Button>
         <div className="flex space-x-3">
-          {/* Show payment button only if there's a remaining balance */}
-          {remainingBalance > 0 && !paymentSuccess && (
-            <Button
-              variant="accent"
-              onClick={handlePayNow}
-              leftIcon={<DollarSign size={18} />}
-              isLoading={isProcessingPayment}
-            >
-              Pay Online
-            </Button>
-          )}
           <Button
             variant="primary"
             onClick={handlePrint}
