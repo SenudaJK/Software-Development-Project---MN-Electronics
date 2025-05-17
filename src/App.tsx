@@ -18,6 +18,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import VerifyCustomerPage from './pages/auth/VerifyCustomerPage';// Ensure this file exists in the specified path or adjust the path
 import InvoiceDetailsPage from './pages/invoice/InvoiceDetailsPage';
 import FeedbackForm from './pages/feedback/FeedbackForm';
+import FeedbackPage from './pages/feedback/FeedbackPage';
 
 function App() {
   return (
@@ -32,7 +33,7 @@ function App() {
             <Route path="forgot-password" element={<ForgotPasswordPage />} />
             <Route path="repair-status" element={<RepairStatusPage />} />
             <Route path="verify-account" element={<VerifyCustomerPage />} />
-            <Route path="feedback" element={<FeedbackForm jobId={123} />} />
+            {/* <Route path="feedback" element={<FeedbackForm jobId={123} />} /> */}
             
             {/* Protected Routes */}
             <Route path="dashboard" element={
@@ -58,6 +59,11 @@ function App() {
             <Route path="/invoice/:jobId" element={
               <ProtectedRoute>
                 <InvoiceDetailsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/feedback/:jobId" element={
+              <ProtectedRoute>
+                <FeedbackPage />
               </ProtectedRoute>
             } />
             

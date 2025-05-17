@@ -14,7 +14,8 @@ import {
   Plus,
   FileText,
   AlertCircle,
-  ShieldCheck
+  ShieldCheck,
+  MessageSquare // Add this for feedback icon
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -42,10 +43,11 @@ const DashboardPage: React.FC = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [jobFeedback, setJobFeedback] = useState<{[key: number]: boolean}>({});
 
   // Fetch jobs for the logged in user
   useEffect(() => {
-    const fetchJobs = async () => {
+    const fetchJobsAndFeedback = async () => {
       if (!user || !user.id) {
         console.log('No user ID found');
         setIsLoading(false);
@@ -72,6 +74,34 @@ const DashboardPage: React.FC = () => {
         // Check if the response data is an array
         if (Array.isArray(response.data)) {
           setJobs(response.data);
+          
+          // Fetch feedback status for completed jobs
+          const completedJobIds = response.data
+            .filter(job => ['Delivered', 'Completed', 'Paid', 'Warranty-Claimed'].includes(job.repair_status))
+            .map(job => job.job_id);
+          
+          if (completedJobIds.length > 0) {
+            try {
+              // Get all feedback for this customer's jobs
+              const feedbackResponse = await axios.get(`http://localhost:5000/api/jobs/feedback/customer/${user.id}`, {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+              });
+              
+              const feedbackMap: {[key: number]: boolean} = {};
+              
+              if (Array.isArray(feedbackResponse.data)) {
+                feedbackResponse.data.forEach((feedback: any) => {
+                  feedbackMap[feedback.Job_ID] = true;
+                });
+              }
+              
+              setJobFeedback(feedbackMap);
+            } catch (feedbackErr) {
+              console.error('Error fetching feedback data:', feedbackErr);
+            }
+          }
         } else {
           console.error('Expected array response but got:', typeof response.data);
           setJobs([]);
@@ -85,7 +115,7 @@ const DashboardPage: React.FC = () => {
       }
     };
     
-    fetchJobs();
+    fetchJobsAndFeedback();
   }, [user]);
   
   // Get active and completed jobs
@@ -528,6 +558,27 @@ const DashboardPage: React.FC = () => {
                               <FileText size={16} className="mr-1" />
                               Invoice
                             </Link>
+                          )}
+                          {/* Show feedback button if no feedback submitted yet */}
+                          {!jobFeedback[job.job_id] && (
+                            <Link
+                              to={`/feedback/${job.job_id}`}
+                              className="text-success hover:text-success-dark flex items-center"
+                              onClick={() => {
+                                // Add debug logging
+                                console.log("Navigating to feedback form for job ID:", job.job_id);
+                              }}
+                            >
+                              <MessageSquare size={16} className="mr-1" />
+                              Feedback
+                            </Link>
+                          )}
+                          {/* Show feedback submitted indicator if feedback exists */}
+                          {jobFeedback[job.job_id] && (
+                            <span className="text-sm text-gray-500 flex items-center">
+                              <CheckCircle size={16} className="mr-1 text-success" />
+                              Feedback Submitted
+                            </span>
                           )}
                         </div>
                       </td>
