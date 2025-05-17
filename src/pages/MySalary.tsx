@@ -38,13 +38,13 @@ const MySalary = () => {
     totalBonus: number;
     totalOvertime: number;
   }
-
   const [salaryDetails, setSalaryDetails] = useState<SalaryDetail[]>([]);
   const [totalSalary, setTotalSalary] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [employee, setEmployee] = useState<any>({});
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [salaryStats, setSalaryStats] = useState<SalarySummary>({
     totalSalary: 0,
@@ -53,11 +53,16 @@ const MySalary = () => {
     totalBonus: 0,
     totalOvertime: 0
   });
-
   useEffect(() => {
     const fetchEmployeeSalary = async () => {
       // Retrieve the logged-in employee's ID from sessionStorage
       const employeeData = JSON.parse(sessionStorage.getItem("employee") || "{}");
+      
+      // Create a properly formatted name property if it doesn't exist
+      if (!employeeData.name && (employeeData.firstName || employeeData.lastName)) {
+        employeeData.name = `${employeeData.firstName || ''} ${employeeData.lastName || ''}`.trim();
+      }
+      
       setEmployee(employeeData);
 
       if (!employeeData || !employeeData.employeeId) {
@@ -69,11 +74,23 @@ const MySalary = () => {
         setIsLoading(true);
         const response = await axios.get(
           `http://localhost:5000/api/salary/salary/${employeeData.employeeId}?year=${selectedYear}`
-        );
-        
+        );        
         const salaryData = response.data.salaryDetails || [];
         setSalaryDetails(salaryData);
-        setTotalSalary(parseFloat(response.data.totalSalary) || 0);
+        setTotalSalary(parseFloat(response.data.totalSalary) || 0);        // If the response includes employee data, update it
+        if (response.data.employee) {
+          const apiEmployeeData = response.data.employee;
+          
+          // Create a properly formatted name property if it doesn't exist
+          if (!apiEmployeeData.name && (apiEmployeeData.firstName || apiEmployeeData.lastName)) {
+            apiEmployeeData.name = `${apiEmployeeData.firstName || ''} ${apiEmployeeData.lastName || ''}`.trim();
+          }
+          
+          setEmployee((prevEmployee: any) => ({
+            ...prevEmployee,
+            ...apiEmployeeData
+          }));
+        }
         
         // Calculate statistics
         if (salaryData.length > 0) {
@@ -116,6 +133,36 @@ const MySalary = () => {
     } else {
       setExpandedRow(index);
     }
+  };
+
+  // Function to get all months
+  const getAllMonths = () => {
+    return [
+      { value: 0, label: "January" },
+      { value: 1, label: "February" },
+      { value: 2, label: "March" },
+      { value: 3, label: "April" },
+      { value: 4, label: "May" },
+      { value: 5, label: "June" },
+      { value: 6, label: "July" },
+      { value: 7, label: "August" },
+      { value: 8, label: "September" },
+      { value: 9, label: "October" },
+      { value: 10, label: "November" },
+      { value: 11, label: "December" }
+    ];
+  };
+
+  // Function to filter salary details by month
+  const getFilteredSalaryDetails = () => {
+    if (selectedMonth === null) {
+      return salaryDetails;
+    }
+    
+    return salaryDetails.filter(salary => {
+      const salaryDate = new Date(salary.Payment_Date);
+      return salaryDate.getMonth() === selectedMonth;
+    });
   };
 
   // Function to get available years (current year and past 4 years)
@@ -186,20 +233,30 @@ const MySalary = () => {
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
               View and track your salary payments and compensation
-            </p>
-          </div>
-          
-          <div className="mt-4 md:mt-0 flex items-center">
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 dark:text-gray-200"
-            >
-              {getAvailableYears().map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
-          </div>
+            </p>          </div>            <div className="mt-4 md:mt-0 flex items-center space-x-4">
+              <div className="text-gray-700 dark:text-gray-300 font-medium">
+                Year: {selectedYear}
+              </div>
+              <div>                <select
+                  value={selectedMonth !== null ? selectedMonth : ""}
+                  onChange={(e) => setSelectedMonth(e.target.value === "" ? null : parseInt(e.target.value))}
+                  className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-1 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 dark:text-gray-200 text-sm"
+                >
+                  <option value="">All Months</option>
+                  {getAllMonths().map(month => (
+                    <option key={month.value} value={month.value}>{month.label}</option>
+                  ))}
+                </select>
+                {selectedMonth !== null && (
+                  <button
+                    onClick={() => setSelectedMonth(null)}
+                    className="ml-2 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            </div>
         </div>
 
         {/* Error Message */}
@@ -218,7 +275,7 @@ const MySalary = () => {
           </div>
         )}
 
-        {!isLoading && salaryDetails.length > 0 && (
+        {!isLoading && salaryDetails.length > 0 && getFilteredSalaryDetails().length > 0 && (
           <>
             {/* Salary Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
@@ -290,24 +347,18 @@ const MySalary = () => {
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Employee ID</p>
                   <p className="font-medium text-gray-800 dark:text-gray-200">{employee.employeeId || "N/A"}</p>
-                </div>
-                <div>
+                </div>                <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Name</p>
                   <p className="font-medium text-gray-800 dark:text-gray-200">
-                    {employee.firstName} {employee.lastName || "N/A"}
+                    {employee.name || "N/A"}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Position</p>
                   <p className="font-medium text-gray-800 dark:text-gray-200">{employee.role || "N/A"}</p>
-                </div>
-                <div>
+                </div>                <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Employment Type</p>
                   <p className="font-medium text-gray-800 dark:text-gray-200">{employee.employmentType || "Full Time"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Department</p>
-                  <p className="font-medium text-gray-800 dark:text-gray-200">{employee.department || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Payment Method</p>
@@ -317,10 +368,9 @@ const MySalary = () => {
             </div>
 
             {/* Salary Table */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">              <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
                 <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                  Salary History for {selectedYear}
+                  Salary History for {selectedYear} {selectedMonth !== null ? `- ${getAllMonths().find(m => m.value === selectedMonth)?.label}` : ''}
                 </h2>
               </div>
               
@@ -352,15 +402,13 @@ const MySalary = () => {
                       <th className="px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-semibold tracking-wider">
                         Category
                       </th>
-                    </tr>
-                  </thead>
+                    </tr>                  </thead>
                   <tbody>
-                    {salaryDetails.map((salary, index) => (
+                    {getFilteredSalaryDetails().map((salary, index) => (
                       <React.Fragment key={index}>
                         <tr className={`border-b border-gray-200 dark:border-gray-700 
                           ${expandedRow === index ? 'bg-blue-50 dark:bg-blue-900/10' : 
-                          'hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
-                          <td className="px-4 py-3 text-gray-800 dark:text-gray-200 font-medium">
+                          'hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>                          <td className="px-4 py-3 text-gray-800 dark:text-gray-200 font-medium">
                             <div className="flex items-center">
                               <Calendar className="h-4 w-4 mr-2 text-gray-400" />
                               <button 
@@ -368,7 +416,6 @@ const MySalary = () => {
                                 className="hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none"
                               >
                                 {getMonthName(salary.Payment_Date)}, {new Date(salary.Payment_Date).getDate()}
-                                <ChevronDown className={`inline-block h-4 w-4 ml-1 transition-transform ${expandedRow === index ? 'rotate-180' : ''}`} />
                               </button>
                             </div>
                           </td>
@@ -515,42 +562,70 @@ const MySalary = () => {
                   </tbody>
                 </table>
               </div>
-              
-              <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
                   <div className="text-sm text-gray-500 dark:text-gray-400 mb-2 sm:mb-0">
-                    Showing {salaryDetails.length} payment records for {selectedYear}
+                    Showing {getFilteredSalaryDetails().length} of {salaryDetails.length} payment records for {selectedYear}
+                    {selectedMonth !== null ? ` - ${getAllMonths().find(m => m.value === selectedMonth)?.label}` : ''}
                   </div>
                   <div className="font-semibold text-gray-900 dark:text-gray-100">
-                    <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">Year Total:</span>
-                    {formatCurrency(totalSalary)}
+                    <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">
+                      {selectedMonth !== null ? 'Month' : 'Year'} Total:
+                    </span>
+                    {formatCurrency(getFilteredSalaryDetails().reduce((sum, item) => 
+                      sum + parseFloat(item.Total_Salary.toString()), 0))}
                   </div>
                 </div>
               </div>
             </div>
           </>
-        )}
-
-        {/* No Salary Found */}
-        {!isLoading && salaryDetails.length === 0 && !error && (
+        )}        {/* No Salary Found */}
+        {!isLoading && ((salaryDetails.length === 0 && !error) || (getFilteredSalaryDetails().length === 0 && salaryDetails.length > 0)) && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center border border-gray-200 dark:border-gray-700">
             <div className="w-16 h-16 mx-auto bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
               <DollarSign className="h-8 w-8 text-gray-400 dark:text-gray-500" />
             </div>
             <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-1">No Salary Records</h3>
             <p className="text-gray-600 dark:text-gray-400">
-              We couldn't find any salary records for {selectedYear}. Try selecting a different year or contact HR if you believe this is an error.
-            </p>
-            <div className="mt-6 flex justify-center space-x-3">
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 dark:text-gray-200"
-              >
-                {getAvailableYears().map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
+              {salaryDetails.length === 0 ? 
+                `We couldn't find any salary records for ${selectedYear}.` :
+                `No records found for ${getAllMonths().find(m => m.value === selectedMonth)?.label} ${selectedYear}.`
+              }
+              {salaryDetails.length === 0 ? 
+                ' Try selecting a different year or contact HR if you believe this is an error.' : 
+                ''
+              }
+            </p>            
+            <div className="mt-6 flex flex-col items-center space-y-3">
+              {salaryDetails.length === 0 ? (
+                // When no records for the year
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                  className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 dark:text-gray-200"
+                >
+                  {getAvailableYears().map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              ) : (
+                // When records exist for the year but not for the selected month
+                <button
+                  onClick={() => setSelectedMonth(null)}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Show All Months
+                </button>
+              )}
+              
+              {salaryDetails.length === 0 && (
+                <button
+                  onClick={() => setSelectedYear(new Date().getFullYear())}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Return to Current Year
+                </button>
+              )}
             </div>
           </div>
         )}

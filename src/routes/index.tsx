@@ -46,6 +46,7 @@ const AppRoutes = () => {
       <Route element={<ProtectedRoute allowedRoles={['owner', 'technician']} />}>
         <Route path="/customers" element={<Customers />} />
         <Route path="/myjobs" element={<MyJobs />} />
+        <Route path="/repair-jobs" element={<RepairJobs />} />
         <Route path="/warranty-jobs" element={<WarrantyJobs />} />
         <Route path="/my-salary" element={<MySalary />} />
         <Route path="/inventory/view-inventory" element={<ViewInventory />} />
@@ -56,19 +57,20 @@ const AppRoutes = () => {
         <Route path="/view-job-used-inventory/:jobId" element={<ViewJobUsedInventory />} />
         <Route path="/bookings/:id" element={<BookingDetail />} />
         <Route path="/account/edit" element={<EditAccount />} />
+        <Route path="/employees" element={<EmployeeTable />} />
       </Route>
 
       {/* Owner-only routes */}
       <Route element={<ProtectedRoute allowedRoles={['owner']} />}>
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/repair-jobs" element={<RepairJobs />} />
+        
         <Route path="/products" element={<Products />} />
         <Route path="/salary" element={<Salary />} />
         <Route path="/register/register-job-customer" element={<RegisterJobAndCustomer />} />
         <Route path="/register-employee" element={<EmployeeRegistrationForm />} />
         <Route path="/add-inventory" element={<InventoryForm />} />
         <Route path="/inventory/inventory-batch" element={<InventoryBatchRegistration />} />
-        <Route path="/employees" element={<EmployeeTable />} />
+        
         <Route path="/fulltime-salary" element={<FullTimeSalaryManagement />} />
         <Route path="invoice/advance-payment" element={<AdvanceInvoice />} />
         <Route path="invoice/full-payment" element={<FullInvoice />} />
