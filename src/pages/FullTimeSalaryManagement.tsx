@@ -42,12 +42,36 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
   const [submitting, setSubmitting] = useState(false);
   const [generatingSalaries, setGeneratingSalaries] = useState(false); // Added for salary generation
   const [forceRegenerate, setForceRegenerate] = useState(false); // Added for force regenerate option
-
   // Current month and year for salary records
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
   });
+  // Function to handle month selection changes with validation
+  const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedMonthValue = e.target.value;
+    const selectedDate = new Date(selectedMonthValue + '-01'); // Add day to make a valid date
+    const currentDate = new Date();
+    
+    // Reset time portion for accurate comparison
+    selectedDate.setHours(0, 0, 0, 0);
+    currentDate.setHours(0, 0, 0, 0);
+    currentDate.setDate(1); // Set to first day of month for month-level comparison
+    
+    // Prevent selection of future months
+    if (selectedDate > currentDate) {
+      setError('Cannot select future months. Only the current month or earlier months are allowed for salary entry.');
+      // Revert to previously selected valid month if selection is invalid
+      return;
+    }
+    
+    // Clear any existing error messages related to month selection
+    if (error.includes('future months') || error.includes('Cannot select')) {
+      setError('');
+    }
+    
+    setSelectedMonth(selectedMonthValue);
+  };
     // State to track existing salary records (State is used internally by the check function)
   const checkExistingSalaries = async (employeeIds: string[]) => {
     setError('');
@@ -323,9 +347,22 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
     const total = basic + overtime + bonus - deductions;
     return isNaN(total) ? 0 : total;
   };
-
   // Submit salary data for selected employees
   const submitSalaries = async () => {
+    // Validate the selected month to prevent salary entries for future months
+    const selectedDate = new Date(selectedMonth + '-01');
+    const currentDate = new Date();
+    
+    // Reset time portion for accurate comparison
+    selectedDate.setHours(0, 0, 0, 0);
+    currentDate.setHours(0, 0, 0, 0);
+    currentDate.setDate(1); // Set to first day of month
+    
+    if (selectedDate > currentDate) {
+      setError('Cannot add salary records for future months. Please select current month or earlier.');
+      return;
+    }
+    
     // Get selected employees
     const selectedEmployees = employees.filter(emp => emp.isSelected);
     
@@ -416,10 +453,23 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
     } finally {
       setSubmitting(false);
     }
-  };
-  // Generate monthly salaries for all full-time employees
+  };  // Generate monthly salaries for all full-time employees
   const generateMonthlySalaries = async () => {
     try {
+      // Validate the selected month to prevent salary generation for future months
+      const selectedDate = new Date(selectedMonth + '-01');
+      const currentDate = new Date();
+      
+      // Reset time portion for accurate comparison
+      selectedDate.setHours(0, 0, 0, 0);
+      currentDate.setHours(0, 0, 0, 0);
+      currentDate.setDate(1); // Set to first day of month
+      
+      if (selectedDate > currentDate) {
+        setError('Cannot generate salary records for future months. Please select current month or earlier.');
+        return;
+      }
+      
       setGeneratingSalaries(true);
       setError('');
       setSuccess('');
@@ -495,17 +545,26 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
             Note: Only one salary record per month is allowed for each employee
           </p>
           
-          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-            <div className="w-64">
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">            <div className="w-64">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Month and Year
               </label>
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              />
+              <div className="relative">
+                <input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={handleMonthChange}
+                  max={`${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, '0')}`}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  aria-describedby="month-constraint"
+                />
+                <div id="month-constraint" className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                  <span className="flex items-center">
+                    <Calendar className="mr-1 h-3 w-3" />
+                    Only current month or earlier allowed
+                  </span>
+                </div>
+              </div>
             </div>
             
             <div className="mt-4 md:mt-8">

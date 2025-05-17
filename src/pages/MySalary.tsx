@@ -188,7 +188,6 @@ const MySalary = () => {
     alert(`Downloading payslip for ${new Date(paymentDate).toLocaleDateString()}`);
     // In a real implementation, this would trigger a backend API call to generate and download a PDF
   };
-
   // Status badge styles
   const getStatusBadgeClass = (status: string | undefined) => {
     if (!status) return "bg-gray-100 text-gray-800";
@@ -203,22 +202,6 @@ const MySalary = () => {
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
     }
-  };
-
-  // New function to categorize monthly salary
-  const getSalaryCategory = (amount: number) => {
-    if (amount >= 100000) return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
-    if (amount >= 75000) return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
-    if (amount >= 50000) return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
-    return "bg-gray-100 text-gray-800 dark:bg-gray-800/60 dark:text-gray-300";
-  };
-
-  // Function to get salary category label
-  const getSalaryCategoryLabel = (amount: number) => {
-    if (amount >= 100000) return "High";
-    if (amount >= 75000) return "Above Average";
-    if (amount >= 50000) return "Average";
-    return "Entry";
   };
 
   return (
@@ -395,12 +378,8 @@ const MySalary = () => {
                       </th>
                       <th className="px-4 py-3 text-right text-gray-700 dark:text-gray-300 font-semibold tracking-wider">
                         Net Salary
-                      </th>
-                      <th className="px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-semibold tracking-wider">
+                      </th>                      <th className="px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-semibold tracking-wider">
                         Status
-                      </th>
-                      <th className="px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-semibold tracking-wider">
-                        Category
                       </th>
                     </tr>                  </thead>
                   <tbody>
@@ -433,23 +412,16 @@ const MySalary = () => {
                           </td>
                           <td className="px-4 py-3 text-right text-gray-800 dark:text-gray-200 font-semibold">
                             {formatCurrency(salary.Total_Salary)}
-                          </td>
-                          <td className="px-4 py-3 text-center">
+                          </td>                          <td className="px-4 py-3 text-center">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(salary.Payment_Status)}`}>
                               {salary.Payment_Status || "Paid"}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSalaryCategory(salary.Total_Salary)}`}>
-                              {getSalaryCategoryLabel(salary.Total_Salary)}
-                            </span>
-                          </td>
                         </tr>
-                        
-                        {/* Expanded details row */}
+                          {/* Expanded details row */}
                         {expandedRow === index && (
                           <tr className="bg-gray-50 dark:bg-gray-700/30">
-                            <td colSpan={8} className="px-4 py-3">
+                            <td colSpan={7} className="px-4 py-3">
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                                 <div className="bg-white dark:bg-gray-800 p-3 rounded shadow-sm">
                                   <h3 className="font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">

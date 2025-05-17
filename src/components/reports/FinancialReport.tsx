@@ -115,14 +115,27 @@ const FinancialReport: React.FC = () => {
       endDate: endDate.toISOString().split('T')[0]
     });
   };
+  // Helper function to safely parse numeric values and handle NaN
+  const safeParseFloat = (value: number | string | null | undefined): number => {
+    if (value === null || value === undefined) return 0;
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return isNaN(numValue) ? 0 : numValue;
+  };
 
   // Format currency
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number | string | null | undefined) => {
+    // If value is undefined, null, or NaN, return a default value
+    if (value === undefined || value === null) return 'LKR 0.00';
+    
+    const numValue = typeof value === 'string' ? safeParseFloat(value) : value;
+    
+    if (isNaN(numValue)) return 'LKR 0.00';
+    
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'LKR',
       minimumFractionDigits: 2
-    }).format(value);
+    }).format(numValue);
   };
 
   if (loading && !reportData) {
