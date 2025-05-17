@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { RefreshCw, AlertCircle, TrendingUp, DollarSign, Calendar } from 'lucide-react';
 import { BarChart, LineChart, PieChart } from './ReportCharts';
+import PrintReportButton from './PrintReportButton';
 
 interface FinancialReportData {
   report_period: {
@@ -39,6 +40,7 @@ const FinancialReport: React.FC = () => {
     startDate: '',
     endDate: ''
   });
+  const reportRef = useRef<HTMLDivElement>(null);
   const [period, setPeriod] = useState<string>('month');
 
   // Calculate default date range (current month)
@@ -209,9 +211,8 @@ const FinancialReport: React.FC = () => {
   const revenueByServiceData = prepareRevenueByServiceData();
   const monthlyTrendsData = prepareMonthlyTrendsData();
   const expenseBreakdownData = prepareExpenseBreakdownData();
-
   return (
-    <div>
+    <div ref={reportRef}>
       <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center">
         <div>
           <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
@@ -223,8 +224,7 @@ const FinancialReport: React.FC = () => {
             </p>
           )}
         </div>
-        
-        <div className="mt-4 md:mt-0 flex flex-col sm:flex-row gap-4">
+          <div className="mt-4 md:mt-0 flex flex-col sm:flex-row gap-4 print-hide">
           {/* Period selector */}
           <div className="flex">
             <button
@@ -278,13 +278,18 @@ const FinancialReport: React.FC = () => {
                 onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
                 className="p-2 border border-gray-300 rounded-md text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               />
+            </div>            <div className="flex gap-2 mt-5">
+              <button
+                onClick={fetchFinancialReport}
+                className="px-3 py-2 bg-blue-600 text-white rounded-lg flex items-center"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
+              <PrintReportButton 
+                reportRef={reportRef} 
+                reportType="Financial" 
+              />
             </div>
-            <button
-              onClick={fetchFinancialReport}
-              className="px-3 py-2 mt-5 bg-blue-600 text-white rounded-lg flex items-center"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </button>
           </div>
         </div>
       </div>

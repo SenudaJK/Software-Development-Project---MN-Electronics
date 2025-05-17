@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { RefreshCw, AlertCircle, Award, Calendar, UserCog, TrendingUp } from 'lucide-react';
 import { BarChart, LineChart } from './ReportCharts';
+import PrintReportButton from './PrintReportButton';
 
 interface EmployeePerformance {
   employee_id: string;
@@ -37,6 +38,7 @@ const PerformanceReport: React.FC = () => {
     startDate: '',
     endDate: ''
   });
+  const reportRef = useRef<HTMLDivElement>(null);
 
   // Calculate default date range (current month)
   useEffect(() => {
@@ -208,9 +210,8 @@ const PerformanceReport: React.FC = () => {
   };
 
   const topPerformer = findTopPerformer();
-
   return (
-    <div>
+    <div ref={reportRef}>
       <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center">
         <div>
           <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
@@ -243,12 +244,18 @@ const PerformanceReport: React.FC = () => {
                 className="p-2 border border-gray-300 rounded-md text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               />
             </div>
-            <button
-              onClick={fetchPerformanceReport}
-              className="mt-5 px-3 py-2 bg-blue-600 text-white rounded-lg flex items-center"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </button>
+            <div className="flex gap-2 mt-auto">
+              <button
+                onClick={fetchPerformanceReport}
+                className="px-3 py-2 bg-blue-600 text-white rounded-lg flex items-center"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
+              <PrintReportButton 
+                reportRef={reportRef} 
+                reportType="Employee Performance" 
+              />
+            </div>
           </div>
         </div>
       </div>

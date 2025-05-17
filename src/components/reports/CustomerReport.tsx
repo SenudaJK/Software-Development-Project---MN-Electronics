@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { RefreshCw, AlertCircle, Users, Heart, Repeat, Clock } from 'lucide-react';
 import { BarChart, DoughnutChart, PieChart } from './ReportCharts';
+import PrintReportButton from './PrintReportButton';
 
 interface TopCustomer {
   id: string;
@@ -31,6 +32,7 @@ const CustomerReport: React.FC = () => {
   const [reportData, setReportData] = useState<CustomerReportData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const fetchCustomerReport = async () => {
     setLoading(true);
@@ -157,9 +159,8 @@ const CustomerReport: React.FC = () => {
   const customerRetentionData = prepareCustomerRetentionData();
   const commonRepairsData = prepareCommonRepairsData();
   const customerSpendingData = prepareCustomerSpendingData();
-
   return (
-    <div>
+    <div ref={reportRef}>
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
           <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
@@ -168,14 +169,19 @@ const CustomerReport: React.FC = () => {
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Customer retention and spending patterns
           </p>
+        </div>        <div className="mt-2 sm:mt-0 flex gap-2 print-hide">
+          <button
+            onClick={fetchCustomerReport}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh Report
+          </button>
+          <PrintReportButton 
+            reportRef={reportRef} 
+            reportType="Customer Analysis" 
+          />
         </div>
-        <button
-          onClick={fetchCustomerReport}
-          className="mt-2 sm:mt-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center"
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh Report
-        </button>
       </div>
 
       {/* Customer statistics cards */}

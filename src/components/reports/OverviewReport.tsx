@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { RefreshCw, TrendingUp, TrendingDown, AlertCircle, CheckCircle } from 'lucide-react';
 import { BarChart, DoughnutChart, LineChart } from './ReportCharts';
+import PrintReportButton from './PrintReportButton';
 
 interface OverviewReportData {
   report_period: {
@@ -37,6 +38,7 @@ const OverviewReport: React.FC = () => {
   const [reportData, setReportData] = useState<OverviewReportData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const fetchOverviewReport = async () => {
     setLoading(true);
@@ -145,9 +147,8 @@ const OverviewReport: React.FC = () => {
       minimumFractionDigits: 2
     }).format(value);
   };
-
   return (
-    <div>
+    <div ref={reportRef}>
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
           <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
@@ -156,14 +157,19 @@ const OverviewReport: React.FC = () => {
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Period: {reportData.report_period.month}
           </p>
+        </div>        <div className="flex gap-2 print-hide">
+          <button
+            onClick={fetchOverviewReport}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh Report
+          </button>
+          <PrintReportButton 
+            reportRef={reportRef} 
+            reportType="Business Overview" 
+          />
         </div>
-        <button
-          onClick={fetchOverviewReport}
-          className="mt-2 sm:mt-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center"
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh Report
-        </button>
       </div>
 
       {/* Key metrics cards */}

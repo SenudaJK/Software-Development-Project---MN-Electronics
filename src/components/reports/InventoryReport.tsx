@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { RefreshCw, AlertCircle, Package, AlertTriangle, CheckCircle } from 'lucide-react';
 import { BarChart, DoughnutChart, PieChart } from './ReportCharts';
+import PrintReportButton from './PrintReportButton';
 
 interface InventoryItem {
   inventory_id: string;
@@ -43,6 +44,7 @@ const InventoryReport: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterLowStock, setFilterLowStock] = useState<boolean>(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const fetchInventoryReport = async () => {
     setLoading(true);
@@ -176,7 +178,7 @@ const InventoryReport: React.FC = () => {
   const mostUsedPartsData = prepareMostUsedPartsData();
 
   return (
-    <div>
+    <div ref={reportRef}>
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
           <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
@@ -190,13 +192,19 @@ const InventoryReport: React.FC = () => {
             </p>
           )}
         </div>
-        <button
-          onClick={fetchInventoryReport}
-          className="mt-2 sm:mt-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center"
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh Report
-        </button>
+        <div className="mt-2 sm:mt-0 flex gap-2">
+          <button
+            onClick={fetchInventoryReport}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh Report
+          </button>
+          <PrintReportButton 
+            reportRef={reportRef} 
+            reportType="Inventory" 
+          />
+        </div>
       </div>
 
       {/* Inventory summary cards */}
@@ -261,11 +269,10 @@ const InventoryReport: React.FC = () => {
       </div>
 
       {/* Inventory table */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
           <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300">Inventory Status</h3>
           
-          <div className="mt-2 md:mt-0 flex flex-col sm:flex-row gap-4">
+          <div className="mt-2 md:mt-0 flex flex-col sm:flex-row gap-4 print-hide">
             <div className="relative">
               <input
                 type="text"
