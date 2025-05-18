@@ -137,8 +137,8 @@ const BookingConfirmationPage: React.FC = () => {
                   <MapPin className="h-5 w-5 text-primary mr-3 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm text-text-secondary mb-1">Location</p>
-                    <p className="font-medium text-text">123 Tech Street</p>
-                    <p className="text-text-secondary">Minneapolis, MN 55123</p>
+                    <p className="font-medium text-text">1B Jayathilaka Road</p>
+                    <p className="text-text-secondary">Panadura, Sri Lanka</p>
                   </div>
                 </div>
               </div>
@@ -204,7 +204,7 @@ const BookingConfirmationPage: React.FC = () => {
             </div>
           </Card>
           
-          <Card className="bg-primary-light bg-opacity-10">
+          {/* <Card className="bg-primary-light bg-opacity-10">
             <div className="flex items-start">
               <Calendar className="h-5 w-5 text-primary mr-3 flex-shrink-0 mt-0.5" />
               <div>
@@ -225,25 +225,25 @@ const BookingConfirmationPage: React.FC = () => {
                 </div>
               </div>
             </div>
-          </Card>
+          </Card> */}
         </div>
         
         <div className="flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0 sm:space-x-4">
-          <Button
+          {/* <Button
             variant="outline"
             className="flex-1"
             leftIcon={<Printer size={18} />}
           >
             Print Confirmation
-          </Button>
+          </Button> */}
           
-          <Button
+          {/* <Button
             variant="outline"
             className="flex-1"
             leftIcon={<Download size={18} />}
           >
             Download Confirmation
-          </Button>
+          </Button> */}
           
           <Link to="/dashboard" className="flex-1">
             <Button

@@ -379,39 +379,6 @@ const HomePage: React.FC = () => {
         </div>
       </section>
       
-      {/* Testimonials */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-text font-heading mb-4">What Our Customers Say</h2>
-            <p className="text-text-secondary max-w-2xl mx-auto">
-              Don't just take our word for it - see what our customers have to say about our repair services.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { name: 'Sarah Johnson', role: 'iPhone User', quote: 'They fixed my cracked iPhone screen in less than an hour. The quality is perfect and the price was very reasonable!' },
-              { name: 'Michael Thompson', role: 'Small Business Owner', quote: 'MN Electronics saved our office laptops after a water leak. Fast service and incredibly knowledgeable technicians.' },
-              { name: 'Emily Rodriguez', role: 'Student', quote: 'As a student, I couldn\'t afford a new laptop. They upgraded my old one and now it runs like new for a fraction of the cost!' }
-            ].map((testimonial, index) => (
-              <Card key={index} className="text-center">
-                <div className="flex justify-center mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={20} className="text-warning fill-current" />
-                  ))}
-                </div>
-                <p className="text-text-secondary italic mb-6">"{testimonial.quote}"</p>
-                <div>
-                  <p className="font-bold text-text">{testimonial.name}</p>
-                  <p className="text-text-secondary text-sm">{testimonial.role}</p>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-      
       {/* CTA */}
       <section className="py-12 bg-primary text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

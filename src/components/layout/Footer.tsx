@@ -56,12 +56,12 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="text-lg font-bold mb-4 font-heading">Our Services</h3>
             <ul className="space-y-2 text-sm">
-              <li className="hover:text-accent-light transition-colors">Smartphone Repair</li>
-              <li className="hover:text-accent-light transition-colors">Laptop Repair</li>
-              <li className="hover:text-accent-light transition-colors">Desktop PC Repair</li>
-              <li className="hover:text-accent-light transition-colors">Tablet Repair</li>
+              <li className="hover:text-accent-light transition-colors">Microwave Repair</li>
+              <li className="hover:text-accent-light transition-colors">Fan Repair</li>
+              <li className="hover:text-accent-light transition-colors">Rice Cooker Repair</li>
+              <li className="hover:text-accent-light transition-colors">DVD Repair</li>
               <li className="hover:text-accent-light transition-colors">TV Repair</li>
-              <li className="hover:text-accent-light transition-colors">Game Console Repair</li>
+              <li className="hover:text-accent-light transition-colors">Amplifier Repair</li>
             </ul>
           </div>
           
