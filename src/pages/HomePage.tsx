@@ -281,12 +281,12 @@ const HomePage: React.FC = () => {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
-              { icon: <Smartphone size={36} />, title: 'Smartphone Repair', description: 'Screen replacement, battery issues, water damage, and more.' },
-              { icon: <Laptop size={36} />, title: 'Laptop Repair', description: 'Screen replacement, keyboard issues, battery replacement, upgrades.' },
-              { icon: <Monitor size={36} />, title: 'Desktop PC Repair', description: 'Hardware upgrades, virus removal, performance issues, custom builds.' },
-              { icon: <Tablet size={36} />, title: 'Tablet Repair', description: 'Screen fixes, battery replacement, charging issues, button repair.' },
-              { icon: <Tv size={36} />, title: 'TV Repair', description: 'Screen issues, power problems, HDMI port repair, smart TV updates.' },
-              { icon: <Gamepad2 size={36} />, title: 'Game Console Repair', description: 'Disc reader issues, controller repair, overheating, HDMI port fixes.' }
+              { icon: <Smartphone size={36} />, title: 'Microwave Repair', description: 'Heating issues, turntable problems, control panel repair, and door fixes.' },
+              { icon: <Laptop size={36} />, title: 'Amplifier Repair', description: 'Sound quality issues, power problems, channel repairs, and component replacement.' },
+              { icon: <Monitor size={36} />, title: 'Fan Repair', description: 'Motor replacement, blade repair, oscillation issues, and speed control fixes.' },
+              { icon: <Tablet size={36} />, title: 'DVD Repair', description: 'Disc reading issues, laser replacement, tray repair, and power problems.' },
+              { icon: <Tv size={36} />, title: 'TV Repair', description: 'Screen issues, power problems, HDMI port repair, panel updates.' },
+              { icon: <Gamepad2 size={36} />, title: 'Blender Repair', description: 'Blade issues, motor repair, container leaks, and power problems.' }
             ].map((service, index) => (
               <Card key={index} hoverable className="text-center">
                 <div className="inline-flex items-center justify-center p-3 bg-primary-light rounded-full text-primary mb-4">
