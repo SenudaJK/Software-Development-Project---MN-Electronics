@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import Card from '../../components/common/Card';
@@ -19,10 +19,15 @@ import {
   Smartphone,
   Monitor,
   Tablet,
-  Tv,
   Gamepad2,
   Cpu,
-  AlertCircle
+  AlertCircle,
+  Radio, // For DVD player
+  Fan,
+  Utensils, // For Blender
+  Microwave,
+  Timer, // For Rice Cooker
+  Music // For Amp
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -37,8 +42,18 @@ const getIconByName = (iconName: string) => {
       return <Monitor size={36} />;
     case 'tablet':
       return <Tablet size={36} />;
-    case 'tv':
-      return <Tv size={36} />;
+    case 'microwave':
+      return <Microwave size={36} />;
+    case 'blender':
+      return <Utensils size={36} />;
+    case 'fan':
+      return <Fan size={36} />;
+    case 'dvd':
+      return <Radio size={36} />;
+    case 'rice-cooker':
+      return <Timer size={36} />;
+    case 'amp':
+      return <Music size={36} />;
     case 'gamepad-2':
       return <Gamepad2 size={36} />;
     default:
@@ -46,18 +61,17 @@ const getIconByName = (iconName: string) => {
   }
 };
 
-// Updated booking form data interface
+// Updated booking form data interface to match the products table schema
 interface BookingFormData {
-  deviceType: string;
-  deviceBrand: string;
-  deviceModel: string;
-  modelNumber: string;
+  deviceType: string; // Maps to product_name
+  deviceModel: string; // Maps to model
+  modelNumber: string; // Maps to model_number
   issueDescription: string;
   commonIssue: string;
   date: string;
   time: string;
   additionalNotes: string;
-  productImage: File | null;
+  productImage: File | null; // Maps to product_image
 }
 
 const NewBookingPage: React.FC = () => {
@@ -65,6 +79,9 @@ const NewBookingPage: React.FC = () => {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previousProducts, setPreviousProducts] = useState<any[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [selectedPreviousProduct, setSelectedPreviousProduct] = useState<any | null>(null);
 
   // Steps for the booking process
   const steps = [
@@ -90,7 +107,6 @@ const NewBookingPage: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<BookingFormData>({
     deviceType: '',
-    deviceBrand: '',
     deviceModel: '',
     modelNumber: '',
     issueDescription: '',
@@ -102,6 +118,34 @@ const NewBookingPage: React.FC = () => {
   });
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // Fetch previous products for the user
+  useEffect(() => {
+    const fetchPreviousProducts = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setIsLoadingProducts(true);
+        const response = await axios.get(
+          `http://localhost:5000/api/products/customer/${user.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+        
+        console.log('Previous products:', response.data);
+        setPreviousProducts(response.data);
+      } catch (error) {
+        console.error('Error fetching previous products:', error);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+    
+    fetchPreviousProducts();
+  }, [user]);
 
   // Handle next step
   const handleNextStep = () => {
@@ -185,11 +229,15 @@ const NewBookingPage: React.FC = () => {
       // Create form data for file upload
       const bookingFormData = new FormData();
 
+      // If using a previous product, include its ID
+      if (selectedPreviousProduct) {
+        bookingFormData.append('product_id', selectedPreviousProduct.product_id.toString());
+      }
+
       // Add product info
       bookingFormData.append('productName', formData.deviceType);
       bookingFormData.append('model', formData.deviceModel);
       bookingFormData.append('modelNumber', formData.modelNumber || '');
-      bookingFormData.append('brand', formData.deviceBrand);
 
       // Add repair info
       bookingFormData.append('repairDescription', formData.issueDescription);
@@ -200,8 +248,8 @@ const NewBookingPage: React.FC = () => {
       bookingFormData.append('time', formData.time);
       bookingFormData.append('additionalNotes', formData.additionalNotes || '');
 
-      // Add product image if available
-      if (formData.productImage) {
+      // Add product image if available and no previous product is selected
+      if (formData.productImage && !selectedPreviousProduct) {
         bookingFormData.append('productImage', formData.productImage);
       }
 
@@ -250,7 +298,7 @@ const NewBookingPage: React.FC = () => {
   const isCurrentStepValid = () => {
     switch (currentStep) {
       case 0: // Device Information
-        return !!formData.deviceType && !!formData.deviceBrand && !!formData.deviceModel;
+        return !!formData.deviceType && !!formData.deviceModel;
       case 1: // Problem Description
         return !!formData.issueDescription;
       case 2: // Schedule Appointment
@@ -262,10 +310,75 @@ const NewBookingPage: React.FC = () => {
     }
   };
 
+  // Handle selecting a previous product
+  const handleSelectPreviousProduct = (product: any) => {
+    setSelectedPreviousProduct(product);
+
+    // Autofill form fields with selected product details
+    setFormData((prev) => ({
+      ...prev,
+      deviceType: product.product_name || '',
+      deviceModel: product.model || '',
+      modelNumber: product.model_number || '',
+    }));
+
+    // Set image preview if product image exists
+    if (product.product_image) {
+      setImagePreview(product.product_image);
+    }
+  };
+
   // Render the device information step
   const renderDeviceInformationStep = () => {
     return (
       <div>
+        {previousProducts.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-text mb-4">Your Previous Devices</h3>
+            <p className="text-text-secondary mb-4">Select a device you've previously booked to autofill details:</p>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {previousProducts.map((product) => (
+                <div 
+                  key={product.product_id}
+                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    selectedPreviousProduct?.product_id === product.product_id
+                      ? 'border-primary bg-primary bg-opacity-5'
+                      : 'border-gray-200 hover:border-primary-light'
+                  }`}
+                  onClick={() => handleSelectPreviousProduct(product)}
+                >
+                  <div className="flex items-center">
+                    {product.product_image ? (
+                      <div className="w-12 h-12 rounded-lg bg-gray-100 mr-3 overflow-hidden flex-shrink-0">
+                        <img 
+                          src={product.product_image}
+                          alt={product.product_name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-gray-100 mr-3 flex items-center justify-center flex-shrink-0">
+                        {getIconByName(product.product_name.toLowerCase())}
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <p className="font-medium text-text">{product.product_name}</p>
+                      <p className="text-sm text-text-secondary">{product.model} {product.model_number && `(${product.model_number})`}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex items-center my-6">
+              <div className="flex-grow h-px bg-gray-200"></div>
+              <p className="mx-4 text-text-secondary text-sm">OR</p>
+              <div className="flex-grow h-px bg-gray-200"></div>
+            </div>
+          </div>
+        )}
+        
         <h3 className="text-lg font-bold text-text mb-4">Select Your Device Type</h3>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6">
@@ -288,15 +401,6 @@ const NewBookingPage: React.FC = () => {
         </div>
 
         <div className="space-y-4">
-          <Input
-            id="device-brand"
-            label="Device Brand"
-            value={formData.deviceBrand}
-            onChange={(e) => updateFormData('deviceBrand', e.target.value)}
-            placeholder="e.g., Apple, Samsung, Dell"
-            required
-          />
-
           <Input
             id="device-model"
             label="Device Model"
@@ -456,14 +560,18 @@ const NewBookingPage: React.FC = () => {
             <h4 className="font-medium text-text mb-3">Device Information</h4>
 
             <div className="grid grid-cols-2 gap-4">
+              {selectedPreviousProduct && (
+                <div className="col-span-2">
+                  <p className="text-sm text-text-secondary mb-1">Using Previous Device</p>
+                  <p className="font-medium text-primary mb-3">
+                    {selectedPreviousProduct.product_name} - {selectedPreviousProduct.model}
+                  </p>
+                </div>
+              )}
+
               <div>
                 <p className="text-sm text-text-secondary">Device Type</p>
                 <p className="font-medium text-text">{selectedDevice?.name || formData.deviceType}</p>
-              </div>
-
-              <div>
-                <p className="text-sm text-text-secondary">Brand</p>
-                <p className="font-medium text-text">{formData.deviceBrand}</p>
               </div>
 
               <div>
@@ -471,7 +579,7 @@ const NewBookingPage: React.FC = () => {
                 <p className="font-medium text-text">{formData.deviceModel}</p>
               </div>
 
-              <div>
+              <div className="col-span-2">
                 <p className="text-sm text-text-secondary">Model Number</p>
                 <p className="font-medium text-text">{formData.modelNumber || 'Not provided'}</p>
               </div>
