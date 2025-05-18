@@ -68,7 +68,7 @@ const AppRoutes = () => {
         <Route path="/products" element={<Products />} />
         <Route path="/salary" element={<Salary />} />
         <Route path="/register/register-job-customer" element={<RegisterJobAndCustomer />} />
-        <Route path="/register-employee" element={<EmployeeRegistrationForm />} />
+        
         <Route path="/add-inventory" element={<InventoryForm />} />
         <Route path="/inventory/inventory-batch" element={<InventoryBatchRegistration />} />
         
@@ -88,6 +88,7 @@ const AppRoutes = () => {
       
       {/* 404 Not Found route - this should be the last route */}
       <Route path="*" element={<NotFound />} />
+      <Route path="/register-employee" element={<EmployeeRegistrationForm />} />
     </Routes>
   );
 };

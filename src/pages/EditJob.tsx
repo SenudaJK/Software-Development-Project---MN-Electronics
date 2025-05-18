@@ -9,7 +9,7 @@ const EditJob = () => {
 
   const [job, setJob] = useState({
     repairDescription: "",
-    repairStatus: "Pending",
+    repairStatus: "",
     handoverDate: "",
     employeeID: "",
   });
@@ -196,16 +196,39 @@ const EditJob = () => {
     e.preventDefault();
 
     try {
-      // Create FormData object for multipart/form-data submission
+      // Add debug logs including full FormData contents
+      console.log("Before update - Current status:", job.repairStatus);
+      console.log("Before update - Current employee:", job.employeeID);
+      
+      // STEP 1: Update job status and assigned employee
+      // Directly map special statuses if needed
+      let mappedStatus = job.repairStatus;
+      
+      // Log the mapped status being sent
+      console.log("Mapped status for API call:", mappedStatus);
+      
+      const statusData = {
+        repair_status: mappedStatus,
+        assigned_employee: job.employeeID || undefined
+      };
+      
+      console.log("Sending status update with data:", statusData);
+      
+      // Send the status update request
+      const statusResponse = await axios.put(
+        `http://localhost:5000/api/jobs/update-job/${jobId}`,
+        statusData
+      );
+      
+      console.log("Job status update response:", statusResponse.data);
+
+      // STEP 2: Then update product details - INCLUDE STATUS THIS TIME
       const formData = new FormData();
       
-      // Add job data
+      // Include ALL required fields - including the status
       formData.append("repair_description", job.repairDescription);
-      formData.append("repair_status", job.repairStatus);
+      formData.append("repair_status", mappedStatus); // Add this line to fix the issue
       formData.append("handover_date", job.handoverDate);
-      formData.append("assigned_employee", job.employeeID);
-      
-      // Add product data
       formData.append("product_name", product.productName);
       formData.append("model", product.model);
       formData.append("model_number", product.modelNumber);
@@ -219,9 +242,14 @@ const EditJob = () => {
       if (product.productImage) {
         formData.append("product_image", product.productImage);
       }
-      
-      console.log("Updating job with FormData"); // Debug log
 
+      // Log FormData contents for debugging
+      console.log("FormData product details:");
+      for (let pair of formData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
+      }
+
+      // Call the product details update endpoint
       const response = await axios.put(
         `http://localhost:5000/api/jobs/update/${jobId}`,
         formData,
@@ -232,7 +260,7 @@ const EditJob = () => {
         }
       );
 
-      // Update image preview if server returns new image URL
+      // Handle image preview update
       if (response.data.image_url) {
         setImagePreview(response.data.image_url);
         setProduct(prev => ({
@@ -241,7 +269,7 @@ const EditJob = () => {
         }));
       }
 
-      setMessage(response.data.message || "Job updated successfully!");
+      setMessage("Job updated successfully!");
       setError("");
       
       // Navigate back to job list after short delay
