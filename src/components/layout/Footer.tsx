@@ -11,8 +11,8 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="text-lg font-bold mb-4 font-heading">MN Electronics</h3>
             <p className="text-sm mb-4">
-              Professional electronics repair services with over 10 years of experience.
-              We fix smartphones, laptops, desktops, tablets, TVs, and more.
+              Professional electronics repair services with over 20 years of experience.
+              We fix Microwave, Fans, Ampliefires, Rice Cookers, TVs, and more.
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-white hover:text-accent-light transition-colors">
@@ -84,9 +84,9 @@ const Footer: React.FC = () => {
               <li className="flex items-start">
                 <Clock className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
                 <div>
-                  <div>Mon-Fri: 9:00 AM - 7:00 PM</div>
+                  <div>Mon-Fri: 7:00 AM - 7:00 PM</div>
                   <div>Sat: 10:00 AM - 5:00 PM</div>
-                  <div>Sun: Closed</div>
+                  <div>Sun: 10:00 AM - 12.30 PM</div>
                 </div>
               </li>
             </ul>
