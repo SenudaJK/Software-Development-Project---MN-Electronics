@@ -119,25 +119,32 @@ const JobDetails: React.FC = () => {
 
   // Filter jobs when search term or selected status changes
   useEffect(() => {
-    let results = jobs;
-
-    // Text search
+    let results = jobs;    // Text search
     if (searchTerm.trim() !== "") {
       const lowerCaseSearchTerm = searchTerm.toLowerCase();
       results = results.filter((job) => {
-        const customerName = `${job.customer_first_name} ${job.customer_last_name}`.toLowerCase();
-        const productName = job.product_name.toLowerCase();
-        const description = job.repair_description.toLowerCase();
-        const jobId = job.job_id.toLowerCase();
-        const model = (job.model || "").toLowerCase();
+        try {
+          // Safely concatenate customer name with null/undefined check
+          const customerName = `${job.customer_first_name || ""} ${job.customer_last_name || ""}`.toLowerCase();
+          
+          // Safely access properties with null/undefined checks and ensure they are strings
+          const productName = typeof job.product_name === 'string' ? job.product_name.toLowerCase() : '';
+          const description = typeof job.repair_description === 'string' ? job.repair_description.toLowerCase() : '';
+          const jobId = typeof job.job_id === 'string' ? job.job_id.toLowerCase() : String(job.job_id || '').toLowerCase();
+          const model = typeof job.model === 'string' ? job.model.toLowerCase() : '';
 
-        return (
-          customerName.includes(lowerCaseSearchTerm) ||
-          productName.includes(lowerCaseSearchTerm) ||
-          description.includes(lowerCaseSearchTerm) ||
-          jobId.includes(lowerCaseSearchTerm) ||
-          model.includes(lowerCaseSearchTerm)
-        );
+          // Safely check if searchTerm is included in any field
+          return (
+            customerName.includes(lowerCaseSearchTerm) ||
+            productName.includes(lowerCaseSearchTerm) ||
+            description.includes(lowerCaseSearchTerm) ||
+            jobId.includes(lowerCaseSearchTerm) ||
+            model.includes(lowerCaseSearchTerm)
+          );
+        } catch (error) {
+          console.error("Error filtering job:", error);
+          return false; // Skip this job if there's an error
+        }
       });
     }
 
@@ -145,11 +152,10 @@ const JobDetails: React.FC = () => {
     if (selectedStatus) {
       results = results.filter((job) => job.repair_status === selectedStatus);
     }
-    
-    // Customer filter
+      // Customer filter
     if (selectedCustomer) {
       results = results.filter(
-        (job) => `${job.customer_first_name} ${job.customer_last_name}` === selectedCustomer
+        (job) => `${job.customer_first_name || ""} ${job.customer_last_name || ""}`.trim() === selectedCustomer
       );
     }
     
@@ -257,9 +263,16 @@ const JobDetails: React.FC = () => {
   const toggleJobDetails = (jobId: string) => {
     setExpandedJobId(expandedJobId === jobId ? null : jobId);
   };
-  
-  // Generate status badge based on repair status
+    // Generate status badge based on repair status
   const getStatusBadge = (status: string) => {
+    if (!status) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+          Unknown
+        </span>
+      );
+    }
+
     switch(status) {
       case 'Completed':
         return (
@@ -328,9 +341,8 @@ const JobDetails: React.FC = () => {
             </h2>
             
             <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
-              {/* Search Bar */}              <div className="relative w-full md:w-96">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+              {/* Search Bar */}              <div className="relative w-full md:w-96">                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-600 dark:text-gray-200" />
                 </div>
                 <input
                   type="text"
@@ -350,9 +362,7 @@ const JobDetails: React.FC = () => {
                     </span>
                   </button>
                 )}
-              </div>
-
-              {/* Filter Toggle */}
+              </div>              {/* Filter Toggle */}
               <button
                 onClick={() => setIsFiltersOpen(!isFiltersOpen)}
                 className={`flex items-center justify-center px-4 py-2 border ${
@@ -364,6 +374,7 @@ const JobDetails: React.FC = () => {
                 <Filter className="h-5 w-5 mr-2" />
                 {(selectedStatus || selectedCustomer || selectedEmployee || dateRange.start || dateRange.end) ? 
                   "Filters Applied" : "Filters"}
+                <ChevronDown className="h-5 w-5 ml-2 text-gray-600 dark:text-gray-200" />
               </button>
             </div>
           </div>
@@ -636,10 +647,9 @@ const JobDetails: React.FC = () => {
                       <td className="py-3 px-4">{job.job_id}</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center space-x-2">
-                          {job.product_image ? (
-                            <img
-                              src={job.product_image}
-                              alt={job.product_name}
+                          {job.product_image ? (                            <img
+                              src={job.product_image || "https://via.placeholder.com/40?text=NA"}
+                              alt={job.product_name || "Product"}
                               className="w-10 h-10 rounded object-cover"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).onerror = null;
@@ -649,29 +659,36 @@ const JobDetails: React.FC = () => {
                           ) : (
                             <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center text-xs">N/A</div>
                           )}
-                          <span>{job.product_name}</span>
+                          <span>{job.product_name || "Unnamed Product"}</span>
                         </div>
-                      </td>
-                      <td className="py-3 px-4">{`${job.customer_first_name} ${job.customer_last_name}`}</td>
+                      </td>                      <td className="py-3 px-4">{`${job.customer_first_name || ""} ${job.customer_last_name || ""}`}</td>
                       <td className="py-3 px-4">{`${job.employee_first_name || "N/A"} ${
                         job.employee_last_name || ""
-                      }`}</td>
-                      <td className="py-3 px-4">
-                        {/* Highlight matching text in repair description */}
-                        {searchTerm && job.repair_description.toLowerCase().includes(searchTerm.toLowerCase()) ? (
+                      }`}</td><td className="py-3 px-4">
+                        {/* Highlight matching text in repair description with null safety */}
+                        {searchTerm && typeof job.repair_description === 'string' && job.repair_description.toLowerCase().includes(searchTerm.toLowerCase()) ? (
                           highlightText(job.repair_description, searchTerm)
                         ) : (
-                          job.repair_description
+                          job.repair_description || ""
                         )}
-                      </td>
-                      <td className="py-3 px-4">
-                        {getStatusBadge(job.repair_status)}
-                      </td>
-                      <td className="py-3 px-4">{
+                      </td>                      <td className="py-3 px-4">
+                        {job.repair_status ? getStatusBadge(job.repair_status) : 
+                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                           Unknown
+                         </span>
+                        }
+                      </td>                      <td className="py-3 px-4">{
                         job.handover_date 
-                          ? new Date(job.handover_date).toLocaleDateString() 
+                          ? (() => {
+                              try {
+                                return new Date(job.handover_date).toLocaleDateString();
+                              } catch (error) {
+                                console.error("Invalid date format:", job.handover_date);
+                                return "Invalid date";
+                              }
+                            })()
                           : "Not set"
-                      }</td>                      <td className="px-4 py-3">
+                      }</td><td className="px-4 py-3">
                         <div className="flex flex-col md:flex-row gap-2">
                           <div className="flex space-x-2">
                             <button
@@ -742,24 +759,32 @@ const JobDetails: React.FC = () => {
 
 // Helper function to highlight matching text
 const highlightText = (text: string, highlight: string) => {
-  if (!highlight.trim()) {
-    return <span>{text}</span>;
+  if (!text || !highlight || !highlight.trim()) {
+    return <span>{text || ""}</span>;
   }
   
-  const regex = new RegExp(`(${highlight})`, 'gi');
-  const parts = text.split(regex);
-  
-  return (
-    <span>
-      {parts.map((part, i) => (
-        regex.test(part) ? (
-          <mark key={i} className="bg-yellow-200 dark:bg-yellow-700 px-1 rounded">{part}</mark>
-        ) : (
-          <span key={i}>{part}</span>
-        )
-      ))}
-    </span>
-  );
+  try {
+    // Escape special regex characters to prevent errors
+    const escapedHighlight = highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedHighlight})`, 'gi');
+    const parts = text.split(regex);
+    
+    return (
+      <span>
+        {parts.map((part, i) => (
+          regex.test(part) ? (
+            <mark key={i} className="bg-yellow-200 dark:bg-yellow-700 px-1 rounded">{part}</mark>
+          ) : (
+            <span key={i}>{part}</span>
+          )
+        ))}
+      </span>
+    );
+  } catch (error) {
+    // If regex fails for any reason, just return the text
+    console.error("Error highlighting text:", error);
+    return <span>{text}</span>;
+  }
 };
 
 export default JobDetails;
