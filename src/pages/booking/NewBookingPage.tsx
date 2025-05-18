@@ -64,6 +64,7 @@ const getIconByName = (iconName: string) => {
 // Updated booking form data interface to match the products table schema
 interface BookingFormData {
   deviceType: string; // Maps to product_name
+  customDeviceType: string; // Used when 'other' is selected, also maps to product_name
   deviceModel: string; // Maps to model
   modelNumber: string; // Maps to model_number
   issueDescription: string;
@@ -79,9 +80,9 @@ const NewBookingPage: React.FC = () => {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [previousProducts, setPreviousProducts] = useState<any[]>([]);
+  const [customerProducts, setCustomerProducts] = useState<any[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
-  const [selectedPreviousProduct, setSelectedPreviousProduct] = useState<any | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
 
   // Steps for the booking process
   const steps = [
@@ -107,6 +108,7 @@ const NewBookingPage: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<BookingFormData>({
     deviceType: '',
+    customDeviceType: '',
     deviceModel: '',
     modelNumber: '',
     issueDescription: '',
@@ -119,13 +121,15 @@ const NewBookingPage: React.FC = () => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  // Fetch previous products for the user
+  // Fetch products associated with the logged-in customer
   useEffect(() => {
-    const fetchPreviousProducts = async () => {
+    const fetchCustomerProducts = async () => {
       if (!user?.id) return;
       
       try {
         setIsLoadingProducts(true);
+        console.log('Fetching customer products for user ID:', user.id);
+        
         const response = await axios.get(
           `http://localhost:5000/api/products/customer/${user.id}`,
           {
@@ -135,16 +139,34 @@ const NewBookingPage: React.FC = () => {
           }
         );
         
-        console.log('Previous products:', response.data);
-        setPreviousProducts(response.data);
-      } catch (error) {
-        console.error('Error fetching previous products:', error);
+        console.log('Customer products response:', response);
+        setCustomerProducts(response.data);
+      } catch (error: any) {
+        console.error('Error fetching customer products:', error);
+        
+        // Log more detailed error information for debugging
+        if (error.response) {
+          // The request was made and the server responded with a status code
+          // that falls out of the range of 2xx
+          console.error('Error response data:', error.response.data);
+          console.error('Error response status:', error.response.status);
+          console.error('Error response headers:', error.response.headers);
+        } else if (error.request) {
+          // The request was made but no response was received
+          console.error('Error request:', error.request);
+        } else {
+          // Something happened in setting up the request that triggered an Error
+          console.error('Error message:', error.message);
+        }
+        
+        // Set empty array to avoid UI issues
+        setCustomerProducts([]);
       } finally {
         setIsLoadingProducts(false);
       }
     };
     
-    fetchPreviousProducts();
+    fetchCustomerProducts();
   }, [user]);
 
   // Handle next step
@@ -169,6 +191,10 @@ const NewBookingPage: React.FC = () => {
 
   // Handle device type selection
   const handleDeviceTypeSelect = (deviceType: string) => {
+    // If selecting a non-'other' device type, clear customDeviceType
+    if (deviceType !== 'other') {
+      updateFormData('customDeviceType', '');
+    }
     updateFormData('deviceType', deviceType);
   };
 
@@ -229,29 +255,38 @@ const NewBookingPage: React.FC = () => {
       // Create form data for file upload
       const bookingFormData = new FormData();
 
-      // If using a previous product, include its ID
-      if (selectedPreviousProduct) {
-        bookingFormData.append('product_id', selectedPreviousProduct.product_id.toString());
+      // Add customer ID for the booking
+      bookingFormData.append('customerId', user.id.toString());
+      
+      // If using an existing product, include its ID instead of creating a new one
+      if (selectedProduct) {
+        bookingFormData.append('existingProduct', 'true');
+        bookingFormData.append('product_id', selectedProduct.product_id.toString());
+      } else {
+        // Add product info only if we're creating a new product
+        bookingFormData.append('existingProduct', 'false');
+        
+        // Use customDeviceType if selected device type is 'other'
+        const productName = formData.deviceType === 'other' && formData.customDeviceType 
+          ? formData.customDeviceType 
+          : formData.deviceType;
+        bookingFormData.append('productName', productName);
+        bookingFormData.append('model', formData.deviceModel);
+        bookingFormData.append('modelNumber', formData.modelNumber || '');
+        
+        // Handle product images for new products
+        if (formData.productImage) {
+          bookingFormData.append('productImage', formData.productImage);
+        }
       }
 
-      // Add product info
-      bookingFormData.append('productName', formData.deviceType);
-      bookingFormData.append('model', formData.deviceModel);
-      bookingFormData.append('modelNumber', formData.modelNumber || '');
-
-      // Add repair info
+      // Add repair info (always needed)
       bookingFormData.append('repairDescription', formData.issueDescription);
-      bookingFormData.append('customerId', user.id.toString());
 
-      // Add appointment info
+      // Add appointment info (always needed)
       bookingFormData.append('date', formattedDate);
       bookingFormData.append('time', formData.time);
       bookingFormData.append('additionalNotes', formData.additionalNotes || '');
-
-      // Add product image if available and no previous product is selected
-      if (formData.productImage && !selectedPreviousProduct) {
-        bookingFormData.append('productImage', formData.productImage);
-      }
 
       // Send to backend
       const response = await axios.post(
@@ -298,6 +333,9 @@ const NewBookingPage: React.FC = () => {
   const isCurrentStepValid = () => {
     switch (currentStep) {
       case 0: // Device Information
+        if (formData.deviceType === 'other') {
+          return !!formData.customDeviceType && !!formData.deviceModel;
+        }
         return !!formData.deviceType && !!formData.deviceModel;
       case 1: // Problem Description
         return !!formData.issueDescription;
@@ -310,21 +348,25 @@ const NewBookingPage: React.FC = () => {
     }
   };
 
-  // Handle selecting a previous product
-  const handleSelectPreviousProduct = (product: any) => {
-    setSelectedPreviousProduct(product);
+  // Handle selecting a product
+  const handleSelectProduct = (product: any) => {
+    setSelectedProduct(product);
 
     // Autofill form fields with selected product details
     setFormData((prev) => ({
       ...prev,
       deviceType: product.product_name || '',
+      customDeviceType: '',
       deviceModel: product.model || '',
       modelNumber: product.model_number || '',
+      productImage: null // Reset any new file uploads when selecting an existing product
     }));
 
     // Set image preview if product image exists
     if (product.product_image) {
       setImagePreview(product.product_image);
+    } else {
+      setImagePreview(null); // Clear preview if no image exists
     }
   };
 
@@ -332,21 +374,25 @@ const NewBookingPage: React.FC = () => {
   const renderDeviceInformationStep = () => {
     return (
       <div>
-        {previousProducts.length > 0 && (
+        {isLoadingProducts ? (
+          <div className="mb-6 p-4 text-center">
+            <p className="text-text-secondary">Loading your previous devices...</p>
+          </div>
+        ) : customerProducts.length > 0 ? (
           <div className="mb-6">
             <h3 className="text-lg font-bold text-text mb-4">Your Previous Devices</h3>
             <p className="text-text-secondary mb-4">Select a device you've previously booked to autofill details:</p>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {previousProducts.map((product) => (
+              {customerProducts.map((product) => (
                 <div 
                   key={product.product_id}
                   className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                    selectedPreviousProduct?.product_id === product.product_id
+                    selectedProduct?.product_id === product.product_id
                       ? 'border-primary bg-primary bg-opacity-5'
                       : 'border-gray-200 hover:border-primary-light'
                   }`}
-                  onClick={() => handleSelectPreviousProduct(product)}
+                  onClick={() => handleSelectProduct(product)}
                 >
                   <div className="flex items-center">
                     {product.product_image ? (
@@ -377,7 +423,7 @@ const NewBookingPage: React.FC = () => {
               <div className="flex-grow h-px bg-gray-200"></div>
             </div>
           </div>
-        )}
+        ) : null}
         
         <h3 className="text-lg font-bold text-text mb-4">Select Your Device Type</h3>
 
@@ -401,6 +447,17 @@ const NewBookingPage: React.FC = () => {
         </div>
 
         <div className="space-y-4">
+          {formData.deviceType === 'other' && (
+            <Input
+              id="custom-device-type"
+              label="Specify Device Type"
+              value={formData.customDeviceType}
+              onChange={(e) => updateFormData('customDeviceType', e.target.value)}
+              placeholder="e.g., Air Conditioner, Washing Machine, Toaster"
+              required
+            />
+          )}
+          
           <Input
             id="device-model"
             label="Device Model"
@@ -540,6 +597,9 @@ const NewBookingPage: React.FC = () => {
   // Render the review step with terms and conditions
   const renderReviewStep = () => {
     const selectedDevice = deviceTypes.find((d) => d.id === formData.deviceType);
+    const deviceTypeName = formData.deviceType === 'other' && formData.customDeviceType
+      ? formData.customDeviceType
+      : selectedDevice?.name || formData.deviceType;
     const selectedDate = formData.date 
       ? format(new Date(formData.date), 'EEEE, MMMM d, yyyy')
       : '';
@@ -560,18 +620,18 @@ const NewBookingPage: React.FC = () => {
             <h4 className="font-medium text-text mb-3">Device Information</h4>
 
             <div className="grid grid-cols-2 gap-4">
-              {selectedPreviousProduct && (
+              {selectedProduct && (
                 <div className="col-span-2">
                   <p className="text-sm text-text-secondary mb-1">Using Previous Device</p>
                   <p className="font-medium text-primary mb-3">
-                    {selectedPreviousProduct.product_name} - {selectedPreviousProduct.model}
+                    {selectedProduct.product_name} - {selectedProduct.model}
                   </p>
                 </div>
               )}
 
               <div>
                 <p className="text-sm text-text-secondary">Device Type</p>
-                <p className="font-medium text-text">{selectedDevice?.name || formData.deviceType}</p>
+                <p className="font-medium text-text">{deviceTypeName}</p>
               </div>
 
               <div>

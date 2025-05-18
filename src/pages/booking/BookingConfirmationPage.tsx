@@ -160,12 +160,7 @@ const BookingConfirmationPage: React.FC = () => {
                   </div>
                 )}
                 
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-sm font-medium">Expected Service Duration: 1-2 hours</p>
-                  <p className="text-sm text-text-secondary">
-                    A diagnostic fee of $25 may apply if you decide not to proceed with the repair.
-                  </p>
-                </div>
+                
               </div>
             </div>
           </div>
@@ -187,10 +182,7 @@ const BookingConfirmationPage: React.FC = () => {
                 </p>
               </li>
               <li className="flex">
-                <span className="bg-primary text-white rounded-full h-6 w-6 flex items-center justify-center text-sm font-medium mr-3 flex-shrink-0 mt-0.5">3</span>
-                <p className="text-text-secondary">
-                  You can track your repair status online using your booking reference number.
-                </p>
+                
               </li>
             </ol>
           </div>
@@ -203,7 +195,7 @@ const BookingConfirmationPage: React.FC = () => {
               <div>
                 <h3 className="font-bold text-text mb-1">Need to Reschedule?</h3>
                 <p className="text-text-secondary mb-3">
-                  Call us at (612) 555-1234 or use your account dashboard to change your appointment.
+                  Call us at 071 2 302 138 or use your account dashboard to change your appointment.
                 </p>
                 <Button variant="primary" size="sm">
                   Contact Us

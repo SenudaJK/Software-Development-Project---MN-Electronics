@@ -162,17 +162,13 @@ export const mockRepairs: Repair[] = [
 
 // Available device types for booking
 export const deviceTypes = [
-  { id: 'smartphone', name: 'Smartphone', icon: 'smartphone' },
-  { id: 'laptop', name: 'Laptop', icon: 'laptop' },
-  { id: 'desktop', name: 'Desktop PC', icon: 'monitor' },
-  { id: 'tablet', name: 'Tablet', icon: 'tablet' },
   { id: 'microwave', name: 'Microwave', icon: 'microwave' },
   { id: 'blender', name: 'Blender', icon: 'blender' },
   { id: 'fan', name: 'Fan', icon: 'fan' },
   { id: 'dvd', name: 'DVD Player', icon: 'dvd' },
   { id: 'rice-cooker', name: 'Rice Cooker', icon: 'rice-cooker' },
   { id: 'amp', name: 'Amplifier', icon: 'amp' },
-  { id: 'gaming', name: 'Gaming Console', icon: 'gamepad-2' },
+  { id: 'tv', name: 'TV', icon: 'television' },
   { id: 'other', name: 'Other Device', icon: 'cpu' },
 ];
 
