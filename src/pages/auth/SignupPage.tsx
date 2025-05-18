@@ -269,7 +269,7 @@ const SignupPage: React.FC = () => {
                 </div>
                 <Button
                   type="button"
-                  variant="secondary"
+                  variant="primary" // Changed from "secondary" to "primary" for better visibility
                   size="md"
                   onClick={handleAddPhoneNumber}
                 >

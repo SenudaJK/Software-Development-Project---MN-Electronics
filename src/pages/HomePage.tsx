@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Smartphone, Laptop, Monitor, Tablet, Tv, Gamepad2, Search, Clock, PenTool as Tool, CheckCircle, Star, ChevronRight, AlertCircle, Calendar, ShieldCheck, MessageSquare } from 'lucide-react';
+import { Smartphone, Laptop, Monitor, Tablet, Tv, Gamepad2, Search, Clock, PenTool as Tool, CheckCircle, Star, ChevronRight, AlertCircle, Calendar, ShieldCheck, MessageSquare, Microwave, Fan, Radio, Music, Utensils } from 'lucide-react';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import axios from 'axios';
@@ -281,12 +281,12 @@ const HomePage: React.FC = () => {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
-              { icon: <Smartphone size={36} />, title: 'Microwave Repair', description: 'Heating issues, turntable problems, control panel repair, and door fixes.' },
-              { icon: <Laptop size={36} />, title: 'Amplifier Repair', description: 'Sound quality issues, power problems, channel repairs, and component replacement.' },
-              { icon: <Monitor size={36} />, title: 'Fan Repair', description: 'Motor replacement, blade repair, oscillation issues, and speed control fixes.' },
-              { icon: <Tablet size={36} />, title: 'DVD Repair', description: 'Disc reading issues, laser replacement, tray repair, and power problems.' },
+              { icon: <Microwave size={36} />, title: 'Microwave Repair', description: 'Heating issues, turntable problems, control panel repair, and door fixes.' },
+              { icon: <Music size={36} />, title: 'Amplifier Repair', description: 'Sound quality issues, power problems, channel repairs, and component replacement.' },
+              { icon: <Fan size={36} />, title: 'Fan Repair', description: 'Motor replacement, blade repair, oscillation issues, and speed control fixes.' },
+              { icon: <Radio size={36} />, title: 'DVD Repair', description: 'Disc reading issues, laser replacement, tray repair, and power problems.' },
               { icon: <Tv size={36} />, title: 'TV Repair', description: 'Screen issues, power problems, HDMI port repair, panel updates.' },
-              { icon: <Gamepad2 size={36} />, title: 'Blender Repair', description: 'Blade issues, motor repair, container leaks, and power problems.' }
+              { icon: <Utensils size={36} />, title: 'Blender Repair', description: 'Blade issues, motor repair, container leaks, and power problems.' }
             ].map((service, index) => (
               <Card key={index} hoverable className="text-center">
                 <div className="inline-flex items-center justify-center p-3 bg-primary-light rounded-full text-primary mb-4">
