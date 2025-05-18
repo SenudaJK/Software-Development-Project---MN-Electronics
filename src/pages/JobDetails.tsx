@@ -328,10 +328,9 @@ const JobDetails: React.FC = () => {
             </h2>
             
             <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
-              {/* Search Bar */}
-              <div className="relative w-full md:w-96">
+              {/* Search Bar */}              <div className="relative w-full md:w-96">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
+                  <Search className="h-5 w-5 text-gray-600 dark:text-gray-300" />
                 </div>
                 <input
                   type="text"
@@ -418,7 +417,116 @@ const JobDetails: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </div>          {/* Filter Panel */}
+          {isFiltersOpen && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border border-gray-200 dark:border-gray-700 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Status Filter */}
+                <div>
+                  <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Repair Status
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="statusFilter"
+                      className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value)}
+                    >
+                      <option value="">All Statuses</option>
+                      {jobStatuses.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <ChevronDown className="h-5 w-5 text-gray-600 dark:text-gray-200" />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Customer Filter */}
+                <div>
+                  <label htmlFor="customerFilter" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Customer
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="customerFilter"
+                      className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      value={selectedCustomer}
+                      onChange={(e) => setSelectedCustomer(e.target.value)}
+                    >                      <option value="">All Customers</option>                      {customers.map((customer) => (
+                        <option key={customer} value={customer}>
+                          {customer}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <ChevronDown className="h-5 w-5 text-gray-600 dark:text-gray-200" />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Employee Filter */}
+                <div>
+                  <label htmlFor="employeeFilter" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Employee
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="employeeFilter"
+                      className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      value={selectedEmployee}
+                      onChange={(e) => setSelectedEmployee(e.target.value)}
+                    >                      <option value="">All Employees</option>                      {employees.map((employee) => (
+                        <option key={employee} value={employee}>
+                          {employee}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <ChevronDown className="h-5 w-5 text-gray-600 dark:text-gray-200" />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Date Range Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Date Range
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="date"
+                      className="block w-full pl-3 pr-3 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      value={dateRange.start}
+                      onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                      placeholder="Start Date"
+                    />
+                    <input
+                      type="date"
+                      className="block w-full pl-3 pr-3 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      value={dateRange.end}
+                      onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                      placeholder="End Date"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Clear Filters Button */}
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={clearAllFilters}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:bg-red-700 dark:hover:bg-red-800"
+                >
+                  Clear All Filters
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Search Results & Filter Indicators */}
           <div className="flex flex-wrap items-center gap-2">
