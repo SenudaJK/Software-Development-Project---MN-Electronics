@@ -1208,7 +1208,7 @@ const RegisterJobAndCustomer = () => {
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         <div className="flex items-center">
                           <Calendar size={16} className="mr-1" />
-                          Expected Handover Date
+                          Recieved Date
                         </div>
                       </label>
                       <input
