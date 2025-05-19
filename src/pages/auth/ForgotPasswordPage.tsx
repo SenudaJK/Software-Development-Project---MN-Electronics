@@ -97,7 +97,7 @@ const ForgotPasswordPage: React.FC = () => {
           type="submit"
           variant="primary"
           size="lg"
-          fullWidth
+          className="w-full"
           isLoading={isSubmitting}
         >
           Send Reset Code
@@ -162,7 +162,7 @@ const ForgotPasswordPage: React.FC = () => {
           type="submit"
           variant="primary"
           size="lg"
-          fullWidth
+          className="w-full"
           isLoading={isSubmitting}
         >
           Reset Password
@@ -207,7 +207,7 @@ const ForgotPasswordPage: React.FC = () => {
         <Link to="/login">
           <Button
             variant="primary"
-            fullWidth
+            className="w-full"
           >
             Go to Login
           </Button>
