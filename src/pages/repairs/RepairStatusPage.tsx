@@ -371,7 +371,6 @@ const RepairStatusPage: React.FC = () => {
                 
                 <Button
                   variant="secondary"
-                  fullWidth
                   leftIcon={<MessageSquare size={18} />}
                 >
                   Contact Technician
