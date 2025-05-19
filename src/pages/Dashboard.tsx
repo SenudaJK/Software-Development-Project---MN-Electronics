@@ -607,7 +607,7 @@ const Dashboard = () => {
             {/* Quick Access Section */}
             <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { title: 'New Repair', icon: <Wrench className="h-5 w-5" />, color: 'bg-blue-500', path: '/create-job' },
+                { title: 'New Repair', icon: <Wrench className="h-5 w-5" />, color: 'bg-blue-500', path: '/register/register-job-customer' },
                 { title: 'Add Customer', icon: <Users className="h-5 w-5" />, color: 'bg-green-500', path: '/customers' },
                 { title: 'Warranty Claims', icon: <ShieldCheck className="h-5 w-5" />, color: 'bg-purple-500', path: '/warranty-jobs' },
                 { title: 'View Bookings', icon: <CalendarClock className="h-5 w-5" />, color: 'bg-amber-500', path: '/bookings' },
