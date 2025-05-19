@@ -142,9 +142,11 @@ const ForgotPasswordPage: React.FC = () => {
         onChange={(e) => setNewPassword(e.target.value)}
         placeholder="Enter new password"
         leftIcon={<Lock size={20} className="text-text-light" />}
-        helperText="Must contain at least 8 characters, one uppercase letter, one number, and one symbol"
         required
       />
+      <div className="text-xs text-text-secondary mb-2 ml-1">
+        Must contain at least 8 characters, one uppercase letter, one number, and one symbol
+      </div>
       
       <Input
         id="confirm-password"
