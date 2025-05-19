@@ -68,22 +68,46 @@ const Customers = () => {
     (customer.phoneNumbers && customer.phoneNumbers.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Validate form
+  // Enhance validation function to match the backend validations
   const validateForm = (customer: any) => {
     const errors: {[key: string]: string} = {};
     
+    // First name validation
     if (!customer.firstName.trim()) {
       errors.firstName = 'First name is required';
+    } else if (!/^[a-zA-Z']+$/.test(customer.firstName)) {
+      errors.firstName = "First name should only contain letters and ' symbol";
+    } else if (customer.firstName.length > 10) {
+      errors.firstName = "First name should not exceed 10 characters";
     }
     
+    // Last name validation
     if (!customer.lastName.trim()) {
       errors.lastName = 'Last name is required';
+    } else if (!/^[a-zA-Z']+$/.test(customer.lastName)) {
+      errors.lastName = "Last name should only contain letters and ' symbol";
+    } else if (customer.lastName.length > 20) {
+      errors.lastName = "Last name should not exceed 20 characters";
     }
     
+    // Email validation
     if (!customer.email.trim()) {
       errors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email)) {
       errors.email = 'Please enter a valid email address';
+    } else if (customer.email.length > 100) {
+      errors.email = "Email should not exceed 100 characters";
+    }
+    
+    // Phone numbers validation
+    if (customer.phoneNumbers) {
+      const phoneArray = customer.phoneNumbers.split(',').map((p: string) => p.trim());
+      for (let phone of phoneArray) {
+        if (!/^07\d{8}$/.test(phone)) {
+          errors.phoneNumbers = "Phone numbers should be 10 digits and start with 07";
+          break;
+        }
+      }
     }
     
     return errors;
@@ -170,7 +194,19 @@ const Customers = () => {
       setSelectedCustomer(null);
     } catch (error) {
       console.error('Error updating customer:', error);
-      setError('Failed to update customer. Please try again.');
+      const err = error as any;
+      if (err.response && err.response.data && err.response.data.message) {
+        setError(err.response.data.message);
+      } else if (err.response && err.response.data && err.response.data.errors) {
+        // Handle validation errors from backend
+        const backendErrors = err.response.data.errors.reduce((acc: any, curr: any) => {
+          acc[curr.param] = curr.msg;
+          return acc;
+        }, {});
+        setValidationErrors(backendErrors);
+      } else {
+        setError('Failed to update customer. Please try again.');
+      }
     } finally {
       setActionLoading(false);
     }
@@ -384,9 +420,297 @@ const Customers = () => {
         )}
       </div>
 
-      {/* The rest of your component remains the same */}
-      {/* Update Dialog, Add New Customer Dialog, Delete Confirmation Dialog */}
-      {/* ... */}
+      {/* Edit Customer Dialog */}
+      {isDialogOpen && selectedCustomer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Edit Customer</h2>
+              <button 
+                onClick={() => setIsDialogOpen(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-4">
+              <div className="space-y-4">
+                {/* First Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedCustomer.firstName}
+                    onChange={(e) => setSelectedCustomer({...selectedCustomer, firstName: e.target.value})}
+                    className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 ${
+                      validationErrors.firstName ? 'border-red-500 dark:border-red-500' : ''
+                    }`}
+                  />
+                  {validationErrors.firstName && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.firstName}</p>
+                  )}
+                </div>
+                
+                {/* Last Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedCustomer.lastName}
+                    onChange={(e) => setSelectedCustomer({...selectedCustomer, lastName: e.target.value})}
+                    className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 ${
+                      validationErrors.lastName ? 'border-red-500 dark:border-red-500' : ''
+                    }`}
+                  />
+                  {validationErrors.lastName && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.lastName}</p>
+                  )}
+                </div>
+                
+                {/* Email */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={selectedCustomer.email}
+                    onChange={(e) => setSelectedCustomer({...selectedCustomer, email: e.target.value})}
+                    className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 ${
+                      validationErrors.email ? 'border-red-500 dark:border-red-500' : ''
+                    }`}
+                  />
+                  {validationErrors.email && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.email}</p>
+                  )}
+                </div>
+                
+                {/* Phone Numbers */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Phone Numbers (comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedCustomer.phoneNumbers || ''}
+                    onChange={(e) => setSelectedCustomer({...selectedCustomer, phoneNumbers: e.target.value})}
+                    placeholder="e.g. 0712345678, 0723456789"
+                    className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 ${
+                      validationErrors.phoneNumbers ? 'border-red-500 dark:border-red-500' : ''
+                    }`}
+                  />
+                  {validationErrors.phoneNumbers && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.phoneNumbers}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Phone numbers should be 10 digits and start with 07
+                  </p>
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  onClick={() => setIsDialogOpen(false)}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDialogSave}
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 flex items-center"
+                >
+                  {actionLoading ? (
+                    <>
+                      <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add the Delete Confirmation Dialog here if not already present */}
+      {deleteConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center text-red-600 dark:text-red-400 mb-4">
+              <AlertCircle className="h-6 w-6 mr-2" />
+              <h3 className="text-lg font-medium">Delete Customer</h3>
+            </div>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
+              Are you sure you want to delete this customer? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteConfirmation(null)}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => confirmDelete(deleteConfirmation)}
+                disabled={actionLoading}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none disabled:opacity-50 flex items-center"
+              >
+                {actionLoading ? (
+                  <>
+                    <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add New Customer Dialog - add this if not already present */}
+      {isAddDialogOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Add New Customer</h2>
+              <button 
+                onClick={() => setIsAddDialogOpen(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-4">
+              <div className="space-y-4">
+                {/* First Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newCustomer.firstName}
+                    onChange={(e) => setNewCustomer({...newCustomer, firstName: e.target.value})}
+                    className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 ${
+                      validationErrors.firstName ? 'border-red-500 dark:border-red-500' : ''
+                    }`}
+                  />
+                  {validationErrors.firstName && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.firstName}</p>
+                  )}
+                </div>
+                
+                {/* Last Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newCustomer.lastName}
+                    onChange={(e) => setNewCustomer({...newCustomer, lastName: e.target.value})}
+                    className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 ${
+                      validationErrors.lastName ? 'border-red-500 dark:border-red-500' : ''
+                    }`}
+                  />
+                  {validationErrors.lastName && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.lastName}</p>
+                  )}
+                </div>
+                
+                {/* Email */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={newCustomer.email}
+                    onChange={(e) => setNewCustomer({...newCustomer, email: e.target.value})}
+                    className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 ${
+                      validationErrors.email ? 'border-red-500 dark:border-red-500' : ''
+                    }`}
+                  />
+                  {validationErrors.email && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.email}</p>
+                  )}
+                </div>
+                
+                {/* Phone Numbers */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Phone Numbers (comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={newCustomer.phoneNumbers || ''}
+                    onChange={(e) => setNewCustomer({...newCustomer, phoneNumbers: e.target.value})}
+                    placeholder="e.g. 0712345678, 0723456789"
+                    className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 ${
+                      validationErrors.phoneNumbers ? 'border-red-500 dark:border-red-500' : ''
+                    }`}
+                  />
+                  {validationErrors.phoneNumbers && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.phoneNumbers}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Phone numbers should be 10 digits and start with 07
+                  </p>
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  onClick={() => setIsAddDialogOpen(false)}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveNewCustomer}
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 flex items-center"
+                >
+                  {actionLoading ? (
+                    <>
+                      <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Customer'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Button */}
+      <div className="fixed bottom-8 right-8">
+        <button
+          onClick={handleAddCustomer}
+          disabled={!isOwner}
+          className={`${
+            isOwner
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400'
+          } rounded-full p-4 shadow-lg flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800`}
+        >
+          {isOwner ? <UserPlus className="h-6 w-6" /> : <Lock className="h-6 w-6" />}
+        </button>
+      </div>
     </div>
   );
 };
