@@ -6,10 +6,8 @@ import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import { Mail, Lock, AlertCircle } from 'lucide-react';
 
-const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
+const LoginPage: React.FC = () => {  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -27,14 +25,17 @@ const LoginPage: React.FC = () => {
     if (!email || !password) {
       setError('Please enter both email and password');
       return;
-    }
-    
-    try {
+    }    try {
       setIsSubmitting(true);
-      await login(email, password, rememberMe);
+      await login(email, password);
       navigate(from, { replace: true });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to login');
+    } catch (err: any) {
+      // Check if it's an authentication error (401)
+      if (err.response && err.response.status === 401) {
+        setError('Username or Password Incorrect');
+      } else {
+        setError('An error occurred while signing in. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -78,22 +79,7 @@ const LoginPage: React.FC = () => {
               leftIcon={<Lock size={20} className="text-text-light" />}
               required
             />
-            
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-text-secondary">
-                  Remember me
-                </label>
-              </div>
-              
+              <div className="flex items-center justify-end mb-6">              
               <Link
                 to="/forgot-password"
                 className="text-sm text-primary hover:text-primary-dark"

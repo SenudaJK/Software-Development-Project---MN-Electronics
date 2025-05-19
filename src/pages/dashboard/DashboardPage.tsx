@@ -382,19 +382,17 @@ const DashboardPage: React.FC = () => {
         ) : (
           <div className="space-y-4">
             {activeJobs.map((job) => (
-              <Card key={job.job_id} hoverable className="p-0 overflow-hidden">
-                <div className="flex flex-col md:flex-row">
-                  {/* Product Image */}
-                  <div className="md:w-32 md:h-auto bg-gray-100 flex items-center justify-center">
+              <Card key={job.job_id} hoverable className="p-0 overflow-hidden">                <div className="flex flex-col md:flex-row">                  {/* Product Image */}
+                  <div className="md:w-48 md:h-auto bg-gray-100 flex items-center justify-center">
                     {job.product_image ? (
                       <img 
                         src={job.product_image} 
                         alt={job.product_name}
-                        className="w-full h-48 md:h-full object-cover" 
+                        className="w-full h-56 md:h-full object-cover" 
                       />
                     ) : (
-                      <div className="p-6">
-                        <Smartphone size={48} className="text-gray-300" />
+                      <div className="p-10">
+                        <Smartphone size={96} className="text-gray-300" />
                       </div>
                     )}
                   </div>
@@ -445,21 +443,10 @@ const DashboardPage: React.FC = () => {
                       </div>
                     )}
                   </div>
-                  
-                  {/* Actions */}
+                    {/* Actions */}
                   <div className="bg-gray-50 p-6 flex flex-row md:flex-col justify-between items-center md:border-l border-gray-100">
-                    <Link to={`/repair-details/${job.job_id}`}>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        rightIcon={<ChevronRight size={16} />}
-                      >
-                        Details
-                      </Button>
-                    </Link>
-                    
                     {job.repair_status?.toLowerCase() === 'ready for pickup' && (
-                      <div className="flex items-center mt-0 md:mt-4 ml-4 md:ml-0">
+                      <div className="flex items-center">
                         <AlertTriangle size={16} className="text-warning mr-2" />
                         <span className="text-sm font-medium text-warning">Ready for pickup</span>
                       </div>

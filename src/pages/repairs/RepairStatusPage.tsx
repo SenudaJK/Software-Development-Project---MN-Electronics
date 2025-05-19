@@ -140,7 +140,7 @@ const RepairStatusPage: React.FC = () => {
               type="submit"
               variant="primary"
               size="lg"
-              fullWidth
+              className="w-full"
               rightIcon={loading ? null : <ChevronRight size={18} />}
               isLoading={loading}
             >
@@ -178,15 +178,29 @@ const RepairStatusPage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Repair Info */}
             <div className="lg:col-span-2">
-              <Card className="mb-8">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
-                  <div>
-                    <span className="inline-block px-2 py-1 bg-gray-100 rounded text-sm mb-2">
-                      #{jobDetails.job_id}
-                    </span>
-                    <h2 className="text-xl font-bold text-text font-heading">
-                      {jobDetails.product_name} {jobDetails.model}
-                    </h2>
+              <Card className="mb-8">                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
+                  <div className="flex items-center">
+                    {/* Added product image or placeholder */}
+                    <div className="mr-4 h-24 w-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {jobDetails.product_image ? (
+                        <img
+                          src={jobDetails.product_image}
+                          alt={jobDetails.product_name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Smartphone size={64} className="text-gray-300" />
+                      )}
+                    </div>
+                    
+                    <div>
+                      <span className="inline-block px-2 py-1 bg-gray-100 rounded text-sm mb-2">
+                        #{jobDetails.job_id}
+                      </span>
+                      <h2 className="text-xl font-bold text-text font-heading">
+                        {jobDetails.product_name} {jobDetails.model}
+                      </h2>
+                    </div>
                   </div>
                   <div className="mt-4 sm:mt-0">
                     <div className="inline-flex items-center px-3 py-1 rounded-full bg-primary bg-opacity-10 text-primary">
@@ -342,14 +356,15 @@ const RepairStatusPage: React.FC = () => {
                   
                   <div className="flex items-center">
                     <MessageSquare size={20} className="text-primary mr-2" />
-                    <span className="text-text-secondary">(612) 555-1234</span>
+                    <span className="text-text-secondary">071 2 302 138</span>
                   </div>
                   
                   <div className="flex items-center">
                     <Calendar size={20} className="text-primary mr-2" />
                     <div className="text-text-secondary">
-                      <div>Mon-Fri: 9:00 AM - 7:00 PM</div>
+                      <div>Mon-Fri: 7:00 AM - 7:00 PM</div>
                       <div>Sat: 10:00 AM - 5:00 PM</div>
+                      <div>Sun: 10:00 AM - 12:30 PM</div>
                     </div>
                   </div>
                 </div>

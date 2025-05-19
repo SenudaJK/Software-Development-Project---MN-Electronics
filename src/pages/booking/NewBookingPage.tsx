@@ -168,15 +168,16 @@ const NewBookingPage: React.FC = () => {
     
     fetchCustomerProducts();
   }, [user]);
-
   // Handle next step
   const handleNextStep = () => {
+    setError(null); // Clear any previous errors
     setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
     window.scrollTo(0, 0);
   };
 
   // Handle previous step
   const handlePrevStep = () => {
+    setError(null); // Clear any previous errors
     setCurrentStep((prev) => Math.max(prev - 1, 0));
     window.scrollTo(0, 0);
   };
@@ -203,9 +204,23 @@ const NewBookingPage: React.FC = () => {
     updateFormData('commonIssue', issue);
     updateFormData('issueDescription', issue);
   };
-
   // Handle date selection
   const handleDateSelect = (date: string) => {
+    // Clear any previous date validation errors
+    setError(null);
+    
+    // Validate that the selected date is today or in the future
+    if (date) {
+      const selectedDate = new Date(date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to beginning of day for comparison
+      
+      if (selectedDate < today) {
+        setError('Please select today or a future date');
+        return;
+      }
+    }
+    
     updateFormData('date', date);
     // Reset time when date changes
     updateFormData('time', '');
@@ -328,7 +343,6 @@ const NewBookingPage: React.FC = () => {
       setIsSubmitting(false);
     }
   };
-
   // Validation for the current step
   const isCurrentStepValid = () => {
     switch (currentStep) {
@@ -338,9 +352,21 @@ const NewBookingPage: React.FC = () => {
         }
         return !!formData.deviceType && !!formData.deviceModel;
       case 1: // Problem Description
-        return !!formData.issueDescription;
-      case 2: // Schedule Appointment
-        return !!formData.date && !!formData.time;
+        return !!formData.issueDescription;      case 2: // Schedule Appointment
+        // Check if date is valid (today or future date)
+        if (!formData.date) return false;
+        
+        const selectedDate = new Date(formData.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time to beginning of day for comparison
+        const isDateValid = selectedDate >= today;
+        
+        if (!isDateValid) {
+          setError('Please select today or a future date');
+          return false;
+        }
+        
+        return isDateValid && !!formData.time;
       case 3: // Review
         return termsAccepted;
       default:
@@ -478,19 +504,26 @@ const NewBookingPage: React.FC = () => {
       </div>
     );
   };
-
   // Render the schedule step
   const renderScheduleStep = () => {
     return (
       <div>
         <h3 className="text-lg font-bold text-text mb-4">Schedule Your Appointment</h3>
-        <div className="space-y-4">
-          <Input
+        
+        {error && (
+          <div className="bg-error-light text-error p-4 rounded-lg mb-6 flex items-center">
+            <AlertCircle className="mr-2" size={20} />
+            <span>{error}</span>
+          </div>
+        )}
+        
+        <div className="space-y-4">          <Input
             id="appointment-date"
-            label="Select Date"
+            label="Select Date (Today or future dates only)"
             type="date"
             value={formData.date}
             onChange={(e) => handleDateSelect(e.target.value)}
+            min={new Date().toISOString().split('T')[0]} // Set minimum date to today
             required
           />
           <Input
