@@ -155,7 +155,7 @@ const RegisterWarrantyClaim: React.FC = () => {
       
       // Navigate to the job details page after successful submission
       setTimeout(() => {
-        navigate(`/jobs/${response.data.jobId}`);
+        navigate(`/jobs`);
       }, 2000);
     } catch (err: any) {
       console.error("Error details:", err.response?.data);

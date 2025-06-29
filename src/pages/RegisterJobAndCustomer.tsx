@@ -870,7 +870,7 @@ const RegisterJobAndCustomer = () => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       <span className="flex items-center">
                         <Smartphone size={16} className="mr-1" />
-                        Phone Numbers
+                        Mobile Numbers
                       </span>
                     </label>
                     <input
@@ -1208,7 +1208,7 @@ const RegisterJobAndCustomer = () => {
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         <div className="flex items-center">
                           <Calendar size={16} className="mr-1" />
-                          Recieved Date
+                          Received Date
                         </div>
                       </label>
                       <input
@@ -1218,7 +1218,11 @@ const RegisterJobAndCustomer = () => {
                         onChange={handleJobChange}
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                         required
+                        max={new Date().toISOString().split('T')[0]} // Disable future dates
                       />
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Cannot select future dates
+                      </p>
                     </div>
                   </div>
                   

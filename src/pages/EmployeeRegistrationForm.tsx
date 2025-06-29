@@ -238,7 +238,7 @@ const EmployeeRegistrationForm = () => {
           {/* Telephone Number */}
           <div>
             <label className="block text-sm font-medium text-gray-600">
-              Telephone Number
+              Mobile Number
             </label>
             <input
               type="text"

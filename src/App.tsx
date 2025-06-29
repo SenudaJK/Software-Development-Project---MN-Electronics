@@ -29,8 +29,9 @@ function App() {
   const AppContent = () => {
     const location = useLocation();
     const isLoginPage = location.pathname === '/';
+    const isEmployeeRegisterPage = location.pathname === '/register-employee'
 
-    if (isLoginPage) {
+    if (isLoginPage || isEmployeeRegisterPage) {
       return <AppRoutes />;
     }
 

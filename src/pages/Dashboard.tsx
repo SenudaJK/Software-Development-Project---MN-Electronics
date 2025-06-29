@@ -120,9 +120,17 @@ const Dashboard = () => {
     setProcessingBooking(bookingId);
     
     try {
+      // Find the booking in the current list to get customer details for better feedback
+      const booking = pendingBookings.find(b => b.BookingID === bookingId);
+      
+      if (!booking) {
+        throw new Error('Booking not found');
+      }
+
       // Use status as 'Accepted' or 'Cancelled' to match the backend route expectations
       await axios.patch(`http://localhost:5000/api/bookings/${bookingId}/status`, {
-        status: status === 'accept' ? 'Accepted' : 'Cancelled'
+        status: status === 'accept' ? 'Accepted' : 'Cancelled',
+        sendEmail: true // Add this flag to tell backend to send email
       });
       
       // Update local state to remove the processed booking
@@ -130,7 +138,7 @@ const Dashboard = () => {
         currentBookings.filter(booking => booking.BookingID !== bookingId)
       );
       
-      // Show success message
+      // Show success message with booking details
       setBookingActionSuccess({
         id: bookingId,
         action: status === 'accept' ? 'accepted' : 'cancelled'
@@ -281,7 +289,7 @@ const Dashboard = () => {
             </div>
           </div>
           
-          {/* Timeframe filter */}
+          {/* Timeframe filter
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">View data for:</span>
             {timeframes.map((tf) => (
@@ -297,7 +305,7 @@ const Dashboard = () => {
                 {tf.label}
               </button>
             ))}
-          </div>
+          </div> */}
         </div>
 
         {/* Error Message */}
@@ -312,7 +320,7 @@ const Dashboard = () => {
         {bookingActionSuccess && (
           <div className="mb-6 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 p-4 rounded-lg flex items-center">
             <CheckCircle className="h-5 w-5 mr-2 flex-shrink-0" />
-            <p>Booking successfully {bookingActionSuccess.action}!</p>
+            <p>Booking successfully {bookingActionSuccess.action}! Email notification has been sent to the customer.</p>
           </div>
         )}
 
@@ -470,7 +478,7 @@ const Dashboard = () => {
                   </h2>
                   <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-medium px-2.5 py-1 rounded flex items-center">
                     <Calendar className="h-3.5 w-3.5 mr-1" />
-                    {timeframes.find(tf => tf.value === timeframe)?.label}
+                    {/* {timeframes.find(tf => tf.value === timeframe)?.label} */}
                   </div>
                 </div>
                 
@@ -608,7 +616,7 @@ const Dashboard = () => {
             <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { title: 'New Repair', icon: <Wrench className="h-5 w-5" />, color: 'bg-blue-500', path: '/register/register-job-customer' },
-                { title: 'Add Customer', icon: <Users className="h-5 w-5" />, color: 'bg-green-500', path: '/customers' },
+                { title: 'View Feedbacks', icon: <Users className="h-5 w-5" />, color: 'bg-green-500', path: '/feedback' },
                 { title: 'Warranty Claims', icon: <ShieldCheck className="h-5 w-5" />, color: 'bg-purple-500', path: '/warranty-jobs' },
                 { title: 'View Bookings', icon: <CalendarClock className="h-5 w-5" />, color: 'bg-amber-500', path: '/bookings' },
               ].map((item, index) => (

@@ -42,8 +42,6 @@ const InventoryReport: React.FC = () => {
   const [reportData, setReportData] = useState<InventoryReportData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [filterLowStock, setFilterLowStock] = useState<boolean>(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
   const fetchInventoryReport = async () => {
@@ -101,14 +99,7 @@ const InventoryReport: React.FC = () => {
       </div>
     );
   }
-  // Filter inventory based on search query and low stock filter
-  const filteredInventory = reportData.inventory_status
-    .filter(item => 
-      item.product_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.inventory_id.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .filter(item => !filterLowStock || item.current_stock <= item.stock_limit);
+  
   // Prepare chart data
   const prepareStockLevelData = () => {
     // Group items by stock status
@@ -183,7 +174,8 @@ const InventoryReport: React.FC = () => {
         <div>
           <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
             Inventory Report
-          </h2>          <p className="text-sm text-gray-600 dark:text-gray-400">
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Current status and usage statistics for inventory items
           </p>
           {reportData.summary.last_updated && (
@@ -268,100 +260,6 @@ const InventoryReport: React.FC = () => {
         </div>
       </div>
 
-      {/* Inventory table */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
-          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300">Inventory Status</h3>
-          
-          <div className="mt-2 md:mt-0 flex flex-col sm:flex-row gap-4 print-hide">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search inventory..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-              </div>
-            </div>
-            
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="lowStockFilter"
-                checked={filterLowStock}
-                onChange={(e) => setFilterLowStock(e.target.checked)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="lowStockFilter" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                Show only low stock items
-              </label>
-            </div>
-          </div>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead>
-              <tr>
-                <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Item Name
-                </th>
-                <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Description
-                </th>
-                <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Current Stock
-                </th>                <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Stock Limit
-                </th>
-                <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Avg. Unit Cost
-                </th>
-                <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Total Value
-                </th>
-              </tr>
-            </thead>            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredInventory.map((item) => (
-                <tr 
-                  key={item.inventory_id}
-                  className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
-                    item.current_stock <= item.stock_limit ? 'bg-amber-50 dark:bg-amber-900/20' : ''
-                  }`}
-                >
-                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">
-                    {item.product_name}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                    {item.description}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm">                    <span 
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        item.current_stock <= item.stock_limit
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                          : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                      }`}
-                    >
-                      {item.current_stock}
-                    </span>
-                  </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-          
-          {filteredInventory.length === 0 && (
-            <p className="text-center p-4 text-gray-500 dark:text-gray-400">
-              No inventory items match the current filters.
-            </p>
-          )}
-        </div>
-      </div>
-
       {/* Low stock alert section */}
       {reportData.low_stock_items.length > 0 && (
         <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800 mb-6">
@@ -375,7 +273,7 @@ const InventoryReport: React.FC = () => {
           <p className="text-sm text-amber-700 dark:text-amber-400 mb-4">
             The following items are below their stock limits and should be restocked soon.
           </p>
-            <ul className="space-y-2">
+          <ul className="space-y-2">
             {reportData.low_stock_items.map((item) => (
               <li key={item.inventory_id} className="flex items-center justify-between bg-white dark:bg-gray-800 p-3 rounded-md shadow-sm">
                 <div>
@@ -396,7 +294,7 @@ const InventoryReport: React.FC = () => {
         </div>
       )}
 
-      {/* Purchase History Section */}
+      {/* Purchase History Section - Chart only, table removed */}
       {reportData.purchase_summary && reportData.purchase_summary.length > 0 && (
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
           <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">Purchase History</h3>
@@ -431,39 +329,6 @@ const InventoryReport: React.FC = () => {
                 }
               }}
             />
-          </div>
-          
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead>
-                <tr>
-                  <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Month
-                  </th>
-                  <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Items Purchased
-                  </th>
-                  <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Total Cost
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {reportData.purchase_summary.map((entry, index) => (
-                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">
-                      {entry.month}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                      {entry.total_purchased}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                      {formatCurrency(entry.total_cost)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
       )}

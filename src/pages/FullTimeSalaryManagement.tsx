@@ -11,11 +11,11 @@ import {
   DollarSign,
   Save,
   X,
-  UploadCloud, // Added for the generate salaries feature
-  Edit // Added for editing basic salary
+  Edit
 } from 'lucide-react';
 
-const FullTimeSalaryManagement = () => {  // Employee type definition
+const FullTimeSalaryManagement = () => {
+  // Employee type definition
   interface Employee {
     id: string;
     firstName: string;
@@ -24,14 +24,15 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
     email: string;
     last_payment_date: string;
     last_salary: number;
-    Basic_Salary: number; // Added Basic_Salary field
+    current_basic_salary: number; // This comes from the latest salary record
     isSelected?: boolean;
     basicSalary?: number;
     overtimePay?: number;
     bonus?: number;
     deductions?: number;
-    isEditingBasicSalary?: boolean; // Added for toggling edit mode
+    isEditingBasicSalary?: boolean;
   }
+  
   // State for employees and salary data
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
@@ -40,91 +41,34 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
   const [success, setSuccess] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [generatingSalaries, setGeneratingSalaries] = useState(false); // Added for salary generation
-  const [forceRegenerate, setForceRegenerate] = useState(false); // Added for force regenerate option
+
   // Current month and year for salary records
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
   });
+
   // Function to handle month selection changes with validation
   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedMonthValue = e.target.value;
-    const selectedDate = new Date(selectedMonthValue + '-01'); // Add day to make a valid date
+    const selectedDate = new Date(selectedMonthValue + '-01');
     const currentDate = new Date();
     
-    // Reset time portion for accurate comparison
-    selectedDate.setHours(0, 0, 0, 0);
-    currentDate.setHours(0, 0, 0, 0);
-    currentDate.setDate(1); // Set to first day of month for month-level comparison
+    // Extract year and month for comparison
+    const selectedYear = selectedDate.getFullYear();
+    const selectedMonth = selectedDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
     
-    // Prevent selection of future months
-    if (selectedDate > currentDate) {
-      setError('Cannot select future months. Only the current month or earlier months are allowed for salary entry.');
-      // Revert to previously selected valid month if selection is invalid
+    // Only allow current month selection for salary entry
+    if (selectedYear !== currentYear || selectedMonth !== currentMonth) {
+      setError('Only current month salary entries are allowed. Please select the current month.');
       return;
     }
     
-    // Clear any existing error messages related to month selection
-    if (error.includes('future months') || error.includes('Cannot select')) {
-      setError('');
-    }
-    
-    setSelectedMonth(selectedMonthValue);
-  };
-    // State to track existing salary records (State is used internally by the check function)
-  const checkExistingSalaries = async (employeeIds: string[]) => {
+    // Clear any existing error messages
     setError('');
-    
-    try {
-      // Extract year and month from selectedMonth (format: YYYY-MM)
-      const [year, month] = selectedMonth.split('-');
-      
-      // First try to use the API if it exists
-      try {
-        // Call API to check if any employees already have salary records for this month
-        const response = await axios.post('http://localhost:5000/api/salary/check-existing-salaries', {
-          employeeIds,
-          year,
-          month
-        });
-        
-        // Return array of employee IDs that already have salary records
-        return response.data.employeesWithExistingSalary || [];
-      } catch (apiError) {
-        console.warn('API for checking existing salaries not available, falling back to client-side validation', apiError);
-        
-        // If the API call fails, fall back to checking with employee data we already have
-        // This is a temporary client-side validation until the backend endpoint is implemented
-        const existingRecords: string[] = [];
-        
-        // Check if any selected employee has a last_payment_date that matches the selected month
-        for (const employeeId of employeeIds) {
-          const employee = employees.find(emp => emp.id === employeeId);
-          if (employee && employee.last_payment_date) {
-            // Parse the last payment date to check if it's in the current selected month
-            try {
-              const paymentDate = new Date(employee.last_payment_date);
-              const paymentMonth = (paymentDate.getMonth() + 1).toString().padStart(2, '0');
-              const paymentYear = paymentDate.getFullYear().toString();
-              
-              if (paymentYear === year && paymentMonth === month) {
-                existingRecords.push(employeeId);
-              }
-            } catch (e) {
-              // If date parsing fails, skip this check
-              console.error('Error parsing payment date:', e);
-            }
-          }
-        }
-        
-        return existingRecords;
-      }
-    } catch (err: any) {
-      console.error('Error checking existing salaries:', err);
-      setError(err.response?.data?.message || 'Error checking existing salary records');
-      return [];
-    }
+    setSelectedMonth(selectedMonthValue);
   };
 
   // Fetch full-time employees
@@ -134,12 +78,13 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
     
     try {
       const response = await axios.get('http://localhost:5000/api/salary/full-time-employees');
-        // Update employee data with additional fields for salary entry
+      
+      // Update employee data with additional fields for salary entry
       const enhancedEmployees = response.data.map((emp: Employee) => ({
         ...emp,
         isSelected: false,
-        // Initialize basicSalary with the Basic_Salary value from the database
-        basicSalary: emp.Basic_Salary || 0,
+        // Initialize basicSalary with the current_basic_salary value from the latest salary record
+        basicSalary: emp.current_basic_salary || 0,
         overtimePay: 0,
         bonus: 0,
         deductions: 0,
@@ -177,7 +122,9 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
     );
     
     setFilteredEmployees(filtered);
-  }, [employees, searchQuery]);  // Toggle employee selection
+  }, [employees, searchQuery]);
+
+  // Toggle employee selection
   const toggleEmployeeSelection = (id: string) => {
     // First check if employee already has a salary record for this month
     const employee = employees.find(emp => emp.id === id);
@@ -189,12 +136,11 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
         const paymentYear = paymentDate.getFullYear().toString();
         
         if (paymentYear === currentYear && paymentMonth === currentMonth) {
-          // Employee already has a salary record for this month, show warning
+          // Employee already has a salary record for this month
           setError(`${employee.firstName} ${employee.lastName} already has a salary record for ${selectedMonth}. Only one salary record per month is allowed.`);
           return; // Don't toggle selection
         }
       } catch (e) {
-        // If date parsing fails, continue with toggle
         console.error('Error parsing payment date:', e);
       }
     }
@@ -214,7 +160,9 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
     
     // Clear any previous error messages when successfully toggling selection
     setError('');
-  };// Update salary field for an employee
+  };
+
+  // Update salary field for an employee
   const updateSalaryField = (id: string, field: string, value: number) => {
     // Validate input based on the field type
     if (field === 'basicSalary' && value <= 0) {
@@ -242,12 +190,13 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
       )
     );
   };
+
   // Toggle editing mode for basic salary
   const toggleEditBasicSalary = (id: string) => {
     // Get the current state of editing for this employee
     const employee = employees.find(emp => emp.id === id);
     const isCurrentlyEditing = employee?.isEditingBasicSalary || false;
-    const newBasicSalary = !isCurrentlyEditing ? employee?.Basic_Salary || 0 : employee?.basicSalary || 0;
+    const newBasicSalary = !isCurrentlyEditing ? employee?.current_basic_salary || 0 : employee?.basicSalary || 0;
     
     // Update both state arrays for consistent UI
     const updatedEmployees = employees.map(emp =>
@@ -274,6 +223,7 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
       )
     );
   };
+
   // Save basic salary to database
   const saveBasicSalary = async (id: string) => {
     const employee = employees.find(emp => emp.id === id);
@@ -292,18 +242,24 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
     
     try {
       setSubmitting(true);
-      // Call the API to update the basic salary
-      await axios.put(`http://localhost:5000/api/salary/update-basic-salary/${id}`, {
-        basicSalary
+      
+      // Call the API to update the basic salary, including the current month
+      const effectiveMonth = selectedMonth; // Use the selected month from the UI
+      
+      const response = await axios.put(`http://localhost:5000/api/salary/update-basic-salary/${id}`, {
+        basicSalary,
+        effectiveMonth
       });
       
-      // Update the employee's Basic_Salary in both state arrays
+      console.log('API Response:', response.data);
+      
+      // Update the employee's current_basic_salary in both state arrays
       const updatedEmployees = employees.map(emp =>
         emp.id === id 
           ? { 
               ...emp, 
-              Basic_Salary: basicSalary,
-              basicSalary: basicSalary, // Ensure basicSalary is also updated
+              current_basic_salary: basicSalary,
+              basicSalary: basicSalary,
               isEditingBasicSalary: false
             } 
           : emp
@@ -315,8 +271,8 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
           emp.id === id 
             ? { 
                 ...emp, 
-                Basic_Salary: basicSalary,
-                basicSalary: basicSalary, // Ensure basicSalary is also updated
+                current_basic_salary: basicSalary,
+                basicSalary: basicSalary,
                 isEditingBasicSalary: false
               } 
             : emp
@@ -330,36 +286,45 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
       
     } catch (err: any) {
       console.error('Error updating basic salary:', err);
+      
+      if (err.response) {
+        console.error('Error Response:', {
+          status: err.response.status,
+          data: err.response.data
+        });
+      }
+      
       setError(err.response?.data?.message || 'Error updating basic salary');
     } finally {
       setSubmitting(false);
     }
-  };// Calculate total salary for an employee
-  // Adds overtime and bonus to basic salary, and subtracts deductions
+  };
+
+  // Calculate total salary for an employee
   const calculateTotalSalary = (employee: Employee): number => {
-    // Get values with fallback to 0 if undefined
     const basic = parseFloat((employee.basicSalary || 0).toString());
     const overtime = parseFloat((employee.overtimePay || 0).toString());
     const bonus = parseFloat((employee.bonus || 0).toString());
     const deductions = parseFloat((employee.deductions || 0).toString());
     
-    // Calculate and return the total (ensure it's a valid number)
     const total = basic + overtime + bonus - deductions;
     return isNaN(total) ? 0 : total;
   };
+
   // Submit salary data for selected employees
   const submitSalaries = async () => {
-    // Validate the selected month to prevent salary entries for future months
-    const selectedDate = new Date(selectedMonth + '-01');
+    // Validate that the selected month is the current month
+    const selectedDate: Date = new Date(selectedMonth + '-01');
     const currentDate = new Date();
     
-    // Reset time portion for accurate comparison
-    selectedDate.setHours(0, 0, 0, 0);
-    currentDate.setHours(0, 0, 0, 0);
-    currentDate.setDate(1); // Set to first day of month
+    // Extract year and month for comparison
+    const selectedYear = selectedDate.getFullYear();
+    const selectedMonthNum = selectedDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
     
-    if (selectedDate > currentDate) {
-      setError('Cannot add salary records for future months. Please select current month or earlier.');
+    if (selectedYear !== currentYear || selectedMonthNum !== currentMonth) {
+      setError('Only current month salary entries are allowed. Please select the current month.');
       return;
     }
     
@@ -370,7 +335,8 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
       setError('Please select at least one employee to record salary');
       return;
     }
-      // Validate salary data - basic salary must be positive
+    
+    // Validate salary data - basic salary must be positive
     const invalidBasicSalaryEmployees = selectedEmployees.filter(emp => 
       !emp.basicSalary || emp.basicSalary <= 0
     );
@@ -407,43 +373,58 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
       setError(`Deductions cannot be negative for ${invalidDeductionsEmployees.map(e => e.firstName).join(', ')}`);
       return;
     }
-      // Check for existing salary records for the selected month
-    const employeeIds = selectedEmployees.map(emp => emp.id);
-    const existingSalaryRecords = await checkExistingSalaries(employeeIds);
     
-    if (existingSalaryRecords.length > 0) {
-      // Find employee names for the IDs with existing records
-      const employeesWithExisting = selectedEmployees.filter(emp => 
-        existingSalaryRecords.includes(emp.id)
-      );
-      
-      // Show error with employee names
-      const employeeNames = employeesWithExisting.map(emp => 
-        `${emp.firstName} ${emp.lastName}`
-      ).join(', ');
-      
-      setError(`Salary records for ${employeeNames} already exist for ${selectedMonth}. Only one salary record per month is allowed.`);
-      return;
-    }
-      // Prepare data for submission
+    // Prepare data for submission
     const salaryData = selectedEmployees.map(emp => ({
       employeeId: emp.id,
       basicSalary: emp.basicSalary || 0,
       overtimePay: emp.overtimePay || 0,
       bonus: emp.bonus || 0,
       deductions: emp.deductions || 0,
-      salaryMonth: selectedMonth // Include the selected month in the payload
+      salaryMonth: selectedMonth
     }));
     
     setSubmitting(true);
     setError('');
     setSuccess('');
-      try {
-      await axios.post('http://localhost:5000/api/salary/insert-full-time-salary', {
+    
+    try {
+      const response = await axios.post('http://localhost:5000/api/salary/insert-full-time-salary', {
         salaryData
       });
       
-      setSuccess(`Successfully recorded salary for ${selectedEmployees.length} employees for ${selectedMonth}`);
+      console.log('Salary insert response:', response.data);
+      
+      // Check if there were any errors with specific employees
+      if (response.data.errors && response.data.errors.length > 0) {
+        const errorMessages = response.data.errors.map((err: any) => {
+          const emp = employees.find(e => e.id === err.employeeId);
+          const name = emp ? `${emp.firstName} ${emp.lastName}` : `Employee ${err.employeeId}`;
+          return `${name}: ${err.message}`;
+        }).join('; ');
+        
+        if (response.data.results && response.data.results.length > 0) {
+          setSuccess(`Partially successful: ${response.data.results.length} records processed, but ${response.data.errors.length} failed.`);
+          setError(`Failed for some employees: ${errorMessages}`);
+        } else {
+          setError(`Failed to record salaries: ${errorMessages}`);
+        }
+      } else {
+        setSuccess(response.data.message || `Successfully recorded salary for ${selectedEmployees.length} employees for ${selectedMonth}`);
+      }
+      
+      // Check if any employees had their Basic_Salary updated for the first time
+      const employeesWithUpdatedBasicSalary = response.data.results?.filter((r: any) => r.basicSalaryUpdated) || [];
+      
+      if (employeesWithUpdatedBasicSalary.length > 0) {
+        const updatedEmployeeIds = employeesWithUpdatedBasicSalary.map((r: any) => r.employeeId);
+        const updatedEmployeeNames = employees
+          .filter(emp => updatedEmployeeIds.includes(emp.id))
+          .map(emp => `${emp.firstName} ${emp.lastName}`)
+          .join(', ');
+        
+        setSuccess(prev => `${prev}. Basic salary was set for the first time for: ${updatedEmployeeNames}`);
+      }
       
       // Reset form and refresh data
       fetchFullTimeEmployees();
@@ -453,57 +434,16 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
     } finally {
       setSubmitting(false);
     }
-  };  // Generate monthly salaries for all full-time employees
-  const generateMonthlySalaries = async () => {
-    try {
-      // Validate the selected month to prevent salary generation for future months
-      const selectedDate = new Date(selectedMonth + '-01');
-      const currentDate = new Date();
-      
-      // Reset time portion for accurate comparison
-      selectedDate.setHours(0, 0, 0, 0);
-      currentDate.setHours(0, 0, 0, 0);
-      currentDate.setDate(1); // Set to first day of month
-      
-      if (selectedDate > currentDate) {
-        setError('Cannot generate salary records for future months. Please select current month or earlier.');
-        return;
-      }
-      
-      setGeneratingSalaries(true);
-      setError('');
-      setSuccess('');
-      
-      // Extract year and month from selectedMonth (format: YYYY-MM)
-      const [year, month] = selectedMonth.split('-');
-      
-      // Call the API to generate monthly salaries
-      const response = await axios.post('http://localhost:5000/api/salary/generate-monthly-salaries', {
-        forceRegenerate,
-        specificMonth: parseInt(month),
-        specificYear: parseInt(year)
-      });
-        // Handle success
-      const { message, results } = response.data;
-      
-      // Count how many were processed vs skipped
-      const processedCount = results.filter((r: any) => r.status === 'Processed').length;
-      const skippedCount = results.filter((r: any) => r.status.includes('Skipped')).length;
-      
-      setSuccess(`${message} - ${processedCount} processed, ${skippedCount} skipped`);
-      
-      // Refresh the employee list to show updated last payment dates
-      fetchFullTimeEmployees();
-      
-    } catch (err: any) {
-      console.error('Error generating monthly salaries:', err);
-      setError(err.response?.data?.message || 'Error generating monthly salaries');
-    } finally {
-      setGeneratingSalaries(false);
-    }
   };
 
-  // Format currency is directly used in the component
+  // Format currency for display
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('en-LK', {
+      style: 'currency',
+      currency: 'LKR',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
@@ -522,15 +462,15 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
         {/* Error and Success messages */}
         {error && (
           <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md flex items-center text-red-700 dark:text-red-300">
-            <AlertCircle className="h-5 w-5 mr-2" />
-            {error}
+            <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+            <div>{error}</div>
           </div>
         )}
         
         {success && (
           <div className="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-md flex items-center text-green-700 dark:text-green-300">
-            <CheckCircle className="h-5 w-5 mr-2" />
-            {success}
+            <CheckCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+            <div>{success}</div>
           </div>
         )}
         
@@ -545,15 +485,17 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
             Note: Only one salary record per month is allowed for each employee
           </p>
           
-          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">            <div className="w-64">
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+            <div className="w-64">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Month and Year
+                Month and Year (Current Month Only)
               </label>
               <div className="relative">
                 <input
                   type="month"
                   value={selectedMonth}
                   onChange={handleMonthChange}
+                  min={`${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, '0')}`}
                   max={`${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, '0')}`}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   aria-describedby="month-constraint"
@@ -561,47 +503,21 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
                 <div id="month-constraint" className="mt-1 text-xs text-amber-600 dark:text-amber-400">
                   <span className="flex items-center">
                     <Calendar className="mr-1 h-3 w-3" />
-                    Only current month or earlier allowed
+                    Only current month permitted ({new Date().toLocaleString('default', { month: 'long', year: 'numeric' })})
                   </span>
                 </div>
               </div>
             </div>
             
             <div className="mt-4 md:mt-8">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button 
-                  onClick={fetchFullTimeEmployees}
-                  className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                  disabled={loading}
-                >
-                  <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                  Refresh Employee List
-                </button>
-                
-                <button
-                  onClick={generateMonthlySalaries}
-                  disabled={generatingSalaries}
-                  className="flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
-                >
-                  <UploadCloud className={`mr-2 h-4 w-4 ${generatingSalaries ? 'animate-spin' : ''}`} />
-                  {generatingSalaries ? 'Generating...' : 'Generate Monthly Salaries'}
-                </button>
-              </div>
-            </div>
-            
-            <div className="mt-4 md:mt-8">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="forceRegenerate"
-                  checked={forceRegenerate}
-                  onChange={() => setForceRegenerate(!forceRegenerate)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="forceRegenerate" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                  Force regenerate (overwrite existing records)
-                </label>
-              </div>
+              <button 
+                onClick={fetchFullTimeEmployees}
+                className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                disabled={loading}
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh Employee List
+              </button>
             </div>
           </div>
         </div>
@@ -656,7 +572,7 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
                         </div>
                       ) : (
                         <div className="font-medium">
-                          LKR {Number(employee.Basic_Salary || 0).toFixed(2)}
+                          LKR {Number(employee.basicSalary || 0).toFixed(2)}
                         </div>
                       )}
                     </td>
@@ -704,7 +620,7 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
           </h2>
           
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Select employees and enter their salary details for the selected month
+            Select employees and enter their salary details for the selected month. If this is the first salary for an employee, the basic salary will be saved as their standard rate.
           </p>
           
           {/* Search box */}
@@ -729,7 +645,8 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
                   <th className="px-4 py-3">
                     <span title="Select/deselect employee for salary entry">Select</span>
                   </th>
-                  <th className="px-4 py-3">Employee</th>                  <th className="px-4 py-3">
+                  <th className="px-4 py-3">Employee</th>
+                  <th className="px-4 py-3">
                     <span title="Basic salary must be greater than 0. This is the base payment amount.">Basic Salary (LKR)</span>
                   </th>
                   <th className="px-4 py-3">
@@ -740,7 +657,8 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
                   </th>
                   <th className="px-4 py-3">
                     <span title="Deductions must be 0 or greater. This amount will be subtracted from the total of basic salary, overtime, and bonus.">Deductions (LKR)</span>
-                  </th><th className="px-4 py-3">
+                  </th>
+                  <th className="px-4 py-3">
                     <span title="Total Salary = Basic Salary + Overtime Pay + Bonus - Deductions">Total Salary (LKR)</span>
                   </th>
                 </tr>
@@ -826,7 +744,8 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
                       </div>
                     </td>
                     <td className="px-4 py-4">
-                      <div className="relative rounded-md shadow-sm">                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <div className="relative rounded-md shadow-sm">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                           <span className="text-gray-500 dark:text-gray-400 text-xs">LKR</span>
                         </div>
                         <input
@@ -843,7 +762,8 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
                           disabled={!employee.isSelected}
                         />
                       </div>
-                    </td>                    <td className="px-4 py-4 font-medium text-gray-800 dark:text-gray-200">
+                    </td>
+                    <td className="px-4 py-4 font-medium text-gray-800 dark:text-gray-200">
                       <div className="flex flex-col">
                         <span className="font-bold text-lg">LKR {calculateTotalSalary(employee).toFixed(2)}</span>
                         {employee.isSelected && (
@@ -858,13 +778,17 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
               </tbody>
             </table>
           </div>
-            {/* Salary validation rules */}
+          
+          {/* Salary validation rules */}
           <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
             <p className="text-sm text-blue-700 dark:text-blue-300 flex items-center">
-              <AlertCircle className="h-4 w-4 mr-2 text-blue-500" />              <span>
+              <AlertCircle className="h-4 w-4 mr-2 text-blue-500" />
+              <span>
                 <strong>Validation Rules:</strong> Basic salary must be greater than 0. Overtime, bonus, and deductions must be 0 or greater. 
                 <br />
                 <strong>Calculation Formula:</strong> Total Salary = Basic Salary + Overtime Pay + Bonus - Deductions
+                <br />
+                <strong>Note:</strong> If this is the first salary for an employee, the basic salary will also be saved to their employee record.
               </span>
             </p>
           </div>
@@ -874,7 +798,9 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
             <div className="mb-4 sm:mb-0">
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Selected: <span className="font-medium">{employees.filter(e => e.isSelected).length}</span> of {employees.length} employees
-              </p>              {employees.filter(e => e.isSelected).length > 0 && (
+              </p>
+              
+              {employees.filter(e => e.isSelected).length > 0 && (
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                   Total payment: <span className="font-medium text-green-600 dark:text-green-400">LKR {
                     employees
@@ -886,19 +812,19 @@ const FullTimeSalaryManagement = () => {  // Employee type definition
               )}
             </div>
             
-            <div className="flex gap-3">              <button
+            <div className="flex gap-3">
+              <button
                 onClick={() => {
                   // Reset all selections
                   const resetEmployees = employees.map(emp => ({
                     ...emp,
                     isSelected: false,
-                    basicSalary: emp.Basic_Salary || 0, // Set to the stored Basic_Salary
+                    basicSalary: emp.basicSalary || 0,
                     overtimePay: 0,
                     bonus: 0,
                     deductions: 0
                   }));
                   
-                  // Update both state arrays together
                   setEmployees(resetEmployees);
                   setFilteredEmployees(
                     searchQuery 

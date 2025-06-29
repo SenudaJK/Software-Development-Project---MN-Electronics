@@ -634,7 +634,7 @@ const MyJobs: React.FC = () => {
                           ) : (
                             <ArrowRight className="h-4 w-4 mr-1" />
                           )}
-                          Update Inventory
+                          Add Components
                         </button>
                       </td>
                     </tr>

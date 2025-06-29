@@ -21,7 +21,8 @@ import {
   ArrowUp,
   ArrowDown,
   Wrench,
-  ClipboardList
+  ClipboardList,
+  Lock // Add Lock icon for disabled buttons
 } from "lucide-react";
 
 const JobDetails: React.FC = () => {
@@ -72,6 +73,22 @@ const JobDetails: React.FC = () => {
   const [customers, setCustomers] = useState<string[]>([]);
   const [employees, setEmployees] = useState<string[]>([]);
   const [jobCounts, setJobCounts] = useState<{[key: string]: number}>({});
+
+  // Add user role state
+  const [userRole, setUserRole] = useState('');
+  
+  // Get the current user's role from localStorage
+  useEffect(() => {
+    try {
+      const employeeData = JSON.parse(localStorage.getItem('employee') || '{}');
+      setUserRole(employeeData.role || '');
+    } catch (error) {
+      console.error('Error parsing employee data:', error);
+    }
+  }, []);
+
+  // Check if the user can perform actions (not technician)
+  const canPerformActions = userRole !== 'technician';
 
   // Fetch jobs from the backend
   useEffect(() => {
@@ -233,8 +250,12 @@ const JobDetails: React.FC = () => {
     setSearchTerm(e.target.value);
   };
 
-  // Navigate to edit page when update button is clicked
+  // Modify the handleUpdateClick function to check permissions
   const handleUpdateClick = (jobId: string) => {
+    if (!canPerformActions) {
+      setError('Only owners and managers can update jobs.');
+      return;
+    }
     navigate(`/edit-job/${jobId}`);
   };
   
@@ -378,6 +399,29 @@ const JobDetails: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md flex items-center text-red-700 dark:text-red-400">
+              <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+              <span>{error}</span>
+              <button 
+                className="ml-auto" 
+                onClick={() => setError("")}
+                aria-label="Dismiss error"
+              >
+                <XCircle className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Permission info for technicians */}
+          {!canPerformActions && (
+            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md flex items-center text-blue-700 dark:text-blue-400">
+              <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+              <span>You are in view-only mode. As a technician, you can view job details but cannot perform actions.</span>
+            </div>
+          )}
 
           {/* Status Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -693,49 +737,81 @@ const JobDetails: React.FC = () => {
                           <div className="flex space-x-2">
                             <button
                               onClick={() => handleUpdateClick(job.job_id)}
-                              className="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300 dark:bg-blue-700 dark:hover:bg-blue-800"
+                              className={`p-2 ${
+                                canPerformActions
+                                  ? 'bg-blue-500 text-white hover:bg-blue-600'
+                                  : 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400'
+                              } rounded-md focus:outline-none focus:ring focus:ring-blue-300`}
+                              disabled={!canPerformActions}
                             >
-                              <Edit className="h-4 w-4" />
+                              {canPerformActions ? (
+                                <Edit className="h-4 w-4" />
+                              ) : (
+                                <Lock className="h-4 w-4" />
+                              )}
                               <span className="ml-1">Update</span>
                             </button>
                             
                             <button
-                              onClick={() => navigate(`/view-job-used-inventory/${job.job_id}`)}
-                              className="p-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 focus:outline-none focus:ring focus:ring-purple-300 dark:bg-purple-700 dark:hover:bg-purple-800"
+                              onClick={() => canPerformActions ? navigate(`/view-job-used-inventory/${job.job_id}`) : setError('Only owners and managers can view inventory details.')}
+                              className={`p-2 ${
+                                canPerformActions
+                                  ? 'bg-purple-500 text-white hover:bg-purple-600'
+                                  : 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400'
+                              } rounded-md focus:outline-none focus:ring focus:ring-purple-300`}
+                              disabled={!canPerformActions}
                             >
-                              <ClipboardList className="h-4 w-4" />
+                              {canPerformActions ? (
+                                <ClipboardList className="h-4 w-4" />
+                              ) : (
+                                <Lock className="h-4 w-4" />
+                              )}
                               <span className="ml-1">View Inventory</span>
                             </button>
                           </div>
                           <div className="flex space-x-2">
                             <button
-                              onClick={() => navigate(`/invoice/full-payment?jobId=${job.job_id}`)}
-                              className="p-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300 dark:bg-green-700 dark:hover:bg-green-800"
+                              onClick={() => canPerformActions ? navigate(`/invoice/full-payment?jobId=${job.job_id}`) : setError('Only owners and managers can generate invoices.')}
+                              className={`p-2 ${
+                                canPerformActions
+                                  ? 'bg-green-500 text-white hover:bg-green-600'
+                                  : 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400'
+                              } rounded-md focus:outline-none focus:ring focus:ring-green-300`}
+                              disabled={!canPerformActions}
                             >
-                              <FileText className="h-4 w-4" />
+                              {canPerformActions ? (
+                                <FileText className="h-4 w-4" />
+                              ) : (
+                                <Lock className="h-4 w-4" />
+                              )}
                               <span className="ml-1">Full Invoice</span>
-                            </button>                            <div className="relative group">
-                              <button                                onClick={() => {
-                                  if (!['Booking Cancelled', 'Cannot Repair', 'Paid', 'Completed'].includes(job.repair_status)) {
-                                    navigate(`/invoice/advance-payment?jobId=${job.job_id}`);
-                                  }
-                                }}
-                                className={`p-2 ${
-                                  ['Booking Cancelled', 'Cannot Repair', 'Paid', 'Completed'].includes(job.repair_status)
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (!canPerformActions) {
+                                  setError('Only owners and managers can generate invoices.');
+                                  return;
+                                }
+                                if (!['Booking Cancelled', 'Cannot Repair', 'Paid', 'Completed'].includes(job.repair_status)) {
+                                  navigate(`/invoice/advance-payment?jobId=${job.job_id}`);
+                                }
+                              }}
+                              className={`p-2 ${
+                                !canPerformActions
+                                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400'
+                                  : ['Booking Cancelled', 'Cannot Repair', 'Paid', 'Completed'].includes(job.repair_status)
                                     ? 'bg-gray-400 cursor-not-allowed'
                                     : 'bg-amber-500 hover:bg-amber-600 focus:ring focus:ring-amber-300 dark:bg-amber-700 dark:hover:bg-amber-800'
-                                } text-white rounded-md focus:outline-none`}
-                                disabled={['Booking Cancelled', 'Cannot Repair', 'Paid', 'Completed'].includes(job.repair_status)}
-                                title={['Booking Cancelled', 'Cannot Repair', 'Paid', 'Completed'].includes(job.repair_status) ? `Advance Invoice not available for ${job.repair_status} jobs` : ''}
-                              >
+                              } text-white rounded-md focus:outline-none`}
+                              disabled={!canPerformActions || ['Booking Cancelled', 'Cannot Repair', 'Paid', 'Completed'].includes(job.repair_status)}
+                            >
+                              {canPerformActions ? (
                                 <Download className="h-4 w-4" />
-                                <span className="ml-1">Advance Invoice</span>
-                              </button>                              {['Booking Cancelled', 'Cannot Repair', 'Paid', 'Completed'].includes(job.repair_status) && (
-                                <div className="absolute bottom-full mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded p-1 w-48 z-10">
-                                  Advance Invoice not available for {job.repair_status} jobs
-                                </div>
+                              ) : (
+                                <Lock className="h-4 w-4" />
                               )}
-                            </div>
+                              <span className="ml-1">Advance Invoice</span>
+                            </button>
                           </div>
                         </div>
                       </td>

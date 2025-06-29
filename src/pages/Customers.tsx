@@ -375,22 +375,6 @@ const Customers = () => {
                             )}
                             Edit
                           </button>
-                          <button
-                            onClick={() => handleDeleteClick(customer.id, `${customer.firstName} ${customer.lastName}`)}
-                            className={`${
-                              isOwner
-                                ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/30'
-                                : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed dark:bg-gray-700/20 dark:text-gray-500 dark:border-gray-700'
-                            } px-3 py-1 rounded-md flex items-center border transition-colors`}
-                            disabled={!isOwner}
-                          >
-                            {isOwner ? (
-                              <Trash2 className="h-4 w-4 mr-1" />
-                            ) : (
-                              <Lock className="h-4 w-4 mr-1" />
-                            )}
-                            Delete
-                          </button>
                         </div>
                       </td>
                     </tr>

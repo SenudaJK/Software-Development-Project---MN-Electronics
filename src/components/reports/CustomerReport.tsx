@@ -159,9 +159,65 @@ const CustomerReport: React.FC = () => {
   const customerRetentionData = prepareCustomerRetentionData();
   const commonRepairsData = prepareCommonRepairsData();
   const customerSpendingData = prepareCustomerSpendingData();
+  
   return (
-    <div ref={reportRef}>
-      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+    <div ref={reportRef} className="print-container">
+      {/* Add custom print styles */}
+      <style>
+        {`
+          @media print {
+            .print-container {
+              font-size: 11px !important;
+              max-width: 100% !important;
+              padding: 0 !important;
+            }
+            
+            /* More specific page break rules */
+            .print-page-break {
+              page-break-before: always !important; 
+              break-before: page !important;
+              display: block !important;
+              height: 0 !important;
+              margin-top: 1rem !important;
+              margin-bottom: 1rem !important;
+            }
+            
+            .print-hide {
+              display: none !important;
+            }
+            .print-reduced-margin {
+              margin-bottom: 0.5rem !important;
+            }
+            .print-chart-container {
+              height: 150px !important;
+            }
+            .print-sm-text {
+              font-size: 10px !important;
+            }
+            .print-xs-text {
+              font-size: 9px !important;
+            }
+            .print-compact-padding {
+              padding: 0.5rem !important;
+            }
+            .print-compact-table td, .print-compact-table th {
+              padding: 0.25rem 0.5rem !important;
+              font-size: 9px !important;
+            }
+            .print-no-background {
+              background-color: white !important;
+              border: 1px solid #eee !important;
+            }
+            /* Make footer smaller */
+            .print-insights {
+              font-size: 9px !important;
+              padding: 0.25rem !important;
+            }
+          }
+        `}
+      </style>
+
+      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center print-reduced-margin">
         <div>
           <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
             Customer Analysis Report
@@ -169,7 +225,8 @@ const CustomerReport: React.FC = () => {
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Customer retention and spending patterns
           </p>
-        </div>        <div className="mt-2 sm:mt-0 flex gap-2 print-hide">
+        </div>
+        <div className="mt-2 sm:mt-0 flex gap-2 print-hide">
           <button
             onClick={fetchCustomerReport}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center"
@@ -185,109 +242,108 @@ const CustomerReport: React.FC = () => {
       </div>
 
       {/* Customer statistics cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 print-reduced-margin">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 print-compact-padding print-no-background">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Customers</h3>
-            <div className="bg-blue-100 p-2 rounded-full text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+            <div className="bg-blue-100 p-2 rounded-full text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 print-hide">
               <Users className="h-4 w-4" />
             </div>
           </div>
           <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
             {reportData.customer_statistics.total_customers}
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 print-xs-text">
             Total customers in database
           </p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 print-compact-padding print-no-background">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Customer Retention</h3>
-            <div className="bg-green-100 p-2 rounded-full text-green-600 dark:bg-green-900/30 dark:text-green-400">
+            <div className="bg-green-100 p-2 rounded-full text-green-600 dark:bg-green-900/30 dark:text-green-400 print-hide">
               <Repeat className="h-4 w-4" />
             </div>
           </div>
           <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
             {reportData.customer_statistics.retention_rate}
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 print-xs-text">
             {reportData.customer_statistics.returning_customers} returning customers
           </p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 print-compact-padding print-no-background">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Top Repair Type</h3>
-            <div className="bg-amber-100 p-2 rounded-full text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+            <div className="bg-amber-100 p-2 rounded-full text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 print-hide">
               <Heart className="h-4 w-4" />
             </div>
           </div>
           <div className="text-xl font-bold text-gray-800 dark:text-gray-200 truncate">
             {reportData.common_repairs[0]?.repair_description || 'None'}
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 print-xs-text">
             {reportData.common_repairs[0]?.count || 0} repairs recorded
           </p>
         </div>
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">Customer Retention</h3>
-          <div className="h-64">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 print-reduced-margin">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 print-compact-padding print-no-background">
+          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">Customer Retention</h3>
+          <div className="h-64 print-chart-container">
             <DoughnutChart data={customerRetentionData} height={250} />
           </div>
-          <div className="mt-4 text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="mt-2 text-center">
+            <p className="text-sm text-gray-600 dark:text-gray-400 print-sm-text">
               <span className="font-medium">{reportData.customer_statistics.retention_rate}</span> of customers return for additional services
             </p>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">Most Common Repair Types</h3>
-          <div className="h-64">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 print-compact-padding print-no-background">
+          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">Most Common Repair Types</h3>
+          <div className="h-64 print-chart-container">
             <PieChart data={commonRepairsData} height={250} />
           </div>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-        <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">Top Customer Spending</h3>
-        <BarChart data={customerSpendingData} height={300} />
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 print-compact-padding print-reduced-margin print-no-background">
+        <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">Top Customer Spending</h3>
+        <div className="h-64 print-chart-container">
+          <BarChart data={customerSpendingData} height={250} />
+        </div>
       </div>
 
-      {/* Top customers table */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-        <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">Top Customers by Revenue</h3>
+      {/* Top customers table - Will go on page 1 */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 print-compact-padding print-reduced-margin print-no-background">
+        <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">Top Customers by Revenue</h3>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 print-compact-table">
             <thead>
               <tr>
-                <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider print-xs-text">
                   Customer
                 </th>
-                <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider print-xs-text">
                   Email
                 </th>
-                <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Total Jobs
+                <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider print-xs-text">
+                  Jobs
                 </th>
-                <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider print-xs-text">
                   Total Spent
                 </th>
-                <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider print-xs-text">
                   Last Visit
-                </th>
-                <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Avg. Value
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {reportData.top_customers.map((customer) => {
+              {reportData.top_customers.slice(0, 6).map((customer) => {
                 // Calculate days since last visit
                 const lastVisitDate = new Date(customer.last_visit);
                 const today = new Date();
@@ -297,31 +353,28 @@ const CustomerReport: React.FC = () => {
                 
                 return (
                   <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200 print-xs-text">
                       {customer.customer_name}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 print-xs-text">
                       {customer.email}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 print-xs-text">
                       {customer.total_jobs}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200 print-xs-text">
                       {formatCurrency(customer.total_spent)}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm print-xs-text">
                       <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-1 text-gray-500 dark:text-gray-400" />
+                        <Clock className="h-4 w-4 mr-1 text-gray-500 dark:text-gray-400 print-hide" />
                         <span>
                           {new Date(customer.last_visit).toLocaleDateString()}
-                          <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                          <span className="text-xs text-gray-500 dark:text-gray-400 ml-1 print-hide">
                             ({daysSinceLastVisit} days ago)
                           </span>
                         </span>
                       </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                      {formatCurrency(customer.total_spent / customer.total_jobs)}
                     </td>
                   </tr>
                 );
@@ -331,22 +384,25 @@ const CustomerReport: React.FC = () => {
         </div>
       </div>
 
+      {/* Start page 2 */}
+      <div className="print-page-break"></div>
+
       {/* Common repairs breakdown */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-        <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">Common Repair Types</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          {reportData.common_repairs.map((repair, index) => (
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 print-compact-padding print-reduced-margin print-no-background">
+        <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">Common Repair Types</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {reportData.common_repairs.slice(0, 5).map((repair, index) => (
             <div 
               key={index} 
-              className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600"
+              className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600 print-compact-padding print-no-background"
             >
               <div className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-1">
                 {repair.count}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 truncate">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 truncate print-sm-text">
                 {repair.repair_description}
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-600">
+              <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-600 print-xs-text">
                 <div 
                   className="bg-blue-600 h-2.5 rounded-full" 
                   style={{ 
@@ -360,12 +416,12 @@ const CustomerReport: React.FC = () => {
       </div>
 
       {/* Customer insights */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">Customer Insights & Recommendations</h3>
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 print-compact-padding print-no-background">
+        <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">Customer Insights & Recommendations</h3>
         
-        <div className="space-y-4">
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-2">Retention Strategy</h4>
+        <div className="space-y-2">
+          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 print-insights print-no-background">
+            <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-1">Retention Strategy</h4>
             <p className="text-sm text-blue-700 dark:text-blue-400">
               With a {reportData.customer_statistics.retention_rate} retention rate, focus on increasing repeat business through follow-up 
               service reminders and loyalty programs. Target the {reportData.customer_statistics.total_customers - reportData.customer_statistics.returning_customers} one-time 
@@ -373,16 +429,16 @@ const CustomerReport: React.FC = () => {
             </p>
           </div>
           
-          <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-            <h4 className="font-medium text-green-800 dark:text-green-300 mb-2">Service Specialization</h4>
+          <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 print-insights print-no-background">
+            <h4 className="font-medium text-green-800 dark:text-green-300 mb-1">Service Specialization</h4>
             <p className="text-sm text-green-700 dark:text-green-400">
               The most common repair type is "{reportData.common_repairs[0]?.repair_description}" with {reportData.common_repairs[0]?.count} repairs. 
               Consider specializing technicians in this area and stocking relevant inventory to optimize service delivery.
             </p>
           </div>
           
-          <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-            <h4 className="font-medium text-purple-800 dark:text-purple-300 mb-2">VIP Customers</h4>
+          <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800 print-insights print-no-background">
+            <h4 className="font-medium text-purple-800 dark:text-purple-300 mb-1">VIP Customers</h4>
             <p className="text-sm text-purple-700 dark:text-purple-400">
               Your top customer ({reportData.top_customers[0]?.customer_name}) has spent {formatCurrency(reportData.top_customers[0]?.total_spent)} across {reportData.top_customers[0]?.total_jobs} jobs. 
               Consider creating a VIP program for your top 10 customers who contribute significantly to revenue.

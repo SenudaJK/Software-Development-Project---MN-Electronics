@@ -35,13 +35,17 @@ import FullTimeSalaryManagement from "../pages/FullTimeSalaryManagement";
 import Reports from "../pages/Reports";
 import NotFound from "../pages/NotFound";
 import ProtectedRoute from "../components/ProtectedRoute";
+import FeedbackManagement from "../pages/FeedbackManagement";
+import BookingsView from '../pages/BookingsView';
+
+import EditBooking from '../pages/EditBooking'
 
 const AppRoutes = () => {
   return (
     <Routes>
       {/* Public routes */}
       <Route path="/" element={<Login />} />
-      
+
       {/* Routes accessible by both owners and technicians */}
       <Route element={<ProtectedRoute allowedRoles={['owner', 'technician']} />}>
         <Route path="/customers" element={<Customers />} />
@@ -59,36 +63,43 @@ const AppRoutes = () => {
         <Route path="/account/edit" element={<EditAccount />} />
         <Route path="/employees" element={<EmployeeTable />} />
         <Route path="/job-used-inventory/:jobId" element={<JobUsedInventory />} />
+        <Route path="/register/register-job-customer" element={<RegisterJobAndCustomer />} />
+        <Route path="/jobs" element={<JobDetails />} />
       </Route>
 
       {/* Owner-only routes */}
       <Route element={<ProtectedRoute allowedRoles={['owner']} />}>
         <Route path="/dashboard" element={<Dashboard />} />
-        
+
         <Route path="/products" element={<Products />} />
         <Route path="/salary" element={<Salary />} />
         <Route path="/register/register-job-customer" element={<RegisterJobAndCustomer />} />
-        
+
         <Route path="/add-inventory" element={<InventoryForm />} />
         <Route path="/inventory/inventory-batch" element={<InventoryBatchRegistration />} />
-        
+
         <Route path="/fulltime-salary" element={<FullTimeSalaryManagement />} />
         <Route path="invoice/advance-payment" element={<AdvanceInvoice />} />
         <Route path="invoice/full-payment" element={<FullInvoice />} />
         <Route path="/inventory-batch/:inventoryId" element={<InventoryBatch />} />
-        
-        <Route path="/jobs" element={<JobDetails />} />
+
+
         <Route path="/edit-job/:jobId" element={<EditJob />} />
         <Route path="/register-salary" element={<RegisterSalary />} />
         <Route path="/invoice/:id" element={<InvoiceDetails />} />
         <Route path="/advance-payment/:jobId" element={<AdvanceInvoiceDetail />} />
         <Route path="/register-warranty-claim/:jobId" element={<RegisterWarrantyClaim />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/feedback" element={<FeedbackManagement />} />
+        <Route path="/bookings" element={<BookingsView />} />
+        <Route path="/bookings/:id" element={<BookingDetail />} />
+        <Route path="/bookings/edit/:id" element={<EditBooking />} />
+        <Route path="/register-employee" element={<EmployeeRegistrationForm />} />
       </Route>
-      
+
       {/* 404 Not Found route - this should be the last route */}
       <Route path="*" element={<NotFound />} />
-      <Route path="/register-employee" element={<EmployeeRegistrationForm />} />
+
     </Routes>
   );
 };

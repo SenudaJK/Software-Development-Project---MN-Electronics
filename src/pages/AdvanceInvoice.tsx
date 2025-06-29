@@ -11,7 +11,7 @@ const AdvanceInvoice = () => {
   const [error, setError] = useState('');
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasExistingInvoice, setHasExistingInvoice] = useState(false);
+  const [existingAdvanceId, setExistingAdvanceId] = useState<number | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -53,7 +53,23 @@ const AdvanceInvoice = () => {
     }
   }, [employeeData, role, location.search, jobId, jobDetails, isAuthorized]);
   
+  // Check if an advance invoice already exists
+  const checkExistingAdvance = async (jobIdToCheck: string) => {
+    try {
+      setIsLoading(true);
+      const response = await axios.get(`http://localhost:5000/api/invoices/check-advance/${jobIdToCheck}`);
+      
+      return response.data.exists ? response.data.advanceId : null;
+    } catch (err) {
+      console.error("Error checking existing advance:", err);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Fetch job details by Job ID
+  // Update the fetchJobDetails function to transform the data
   const fetchJobDetails = async (id?: string) => {
     if (!isAuthorized) return;
     
@@ -69,38 +85,48 @@ const AdvanceInvoice = () => {
     try {
       setIsLoading(true);
       setError('');
-      setHasExistingInvoice(false);
+      setExistingAdvanceId(null);
       
-      // First, check if the job has an existing advance invoice
-      const invoiceCheckResponse = await axios.get(`http://localhost:5000/api/invoices/check-advance/${jobIdToUse}`);
+      // First check if an advance invoice already exists
+      const existingId = await checkExistingAdvance(jobIdToUse);
       
-      if (invoiceCheckResponse.data.exists) {
-        setError(`An advance invoice already exists for Job ID ${jobIdToUse}. Please use a different Job ID.`);
-        setHasExistingInvoice(true);
+      if (existingId) {
+        setError(`An advance payment already exists for Job ID ${jobIdToUse}.`);
+        setExistingAdvanceId(existingId);
         setJobDetails(null);
         return;
       }
       
-      // If no existing invoice, fetch job details
       const response = await axios.get(`http://localhost:5000/api/jobs/job-details/${jobIdToUse}`);
+      console.log("Job details response:", response.data); // Debug the response
       
+      // Transform the data to include formatted customer name
+      const jobData = {
+        ...response.data,
+        // Create a combined customer_name field from firstName and lastName
+        customer_name: response.data.customer_firstName && response.data.customer_lastName 
+          ? `${response.data.customer_firstName} ${response.data.customer_lastName}`
+          : 'Unknown',
+        // Create an alias for customer_email as email for convenience
+        email: response.data.customer_email
+      };
+      
+      console.log("Transformed job data:", jobData);
+      console.log("Customer name:", jobData.customer_name);
+      console.log("Email:", jobData.email);
+
       // Check if job status is eligible for advance invoice
       const ineligibleStatuses = ['Booking Cancelled', 'Cannot Repair', 'Paid', 'Completed'];
-      if (ineligibleStatuses.includes(response.data.repair_status)) {
-        setError(`Cannot create advance invoice for jobs with status "${response.data.repair_status}".`);
+      if (ineligibleStatuses.includes(jobData.repair_status)) {
+        setError(`Cannot create advance invoice for jobs with status "${jobData.repair_status}".`);
         setJobDetails(null);
         return;
       }
       
-      if (response.data.invoiceExists) {
-        setError(`An advance payment already exists for Job ID ${jobIdToUse}. Please use a different Job ID.`);
-        setHasExistingInvoice(true);
-        setJobDetails(null);
-      } else {
-        setJobDetails(response.data);
-        setError('');
-      }
+      setJobDetails(jobData);
+      setError('');
     } catch (err: any) {
+      console.error("Error fetching job details:", err);
       setJobDetails(null);
       
       // More specific error messages
@@ -108,7 +134,6 @@ const AdvanceInvoice = () => {
         setError('Job ID not found. Please check and try again.');
       } else if (err.response?.status === 409) {
         setError('An advance payment already exists for this job.');
-        setHasExistingInvoice(true);
       } else {
         setError(err.response?.data?.message || 'Error fetching job details');
       }
@@ -129,8 +154,8 @@ const AdvanceInvoice = () => {
       return;
     }
     
-    if (hasExistingInvoice) {
-      setError('An advance invoice already exists for this job');
+    if (existingAdvanceId) {
+      setError('An advance payment already exists for this job');
       return;
     }
     
@@ -148,12 +173,12 @@ const AdvanceInvoice = () => {
     try {
       setIsLoading(true);
       
-      // Double-check for existing invoice before proceeding
-      const invoiceCheckResponse = await axios.get(`http://localhost:5000/api/invoices/check-advance/${jobId}`);
+      // Double-check for existing advance before creating
+      const existingId = await checkExistingAdvance(jobId);
       
-      if (invoiceCheckResponse.data.exists) {
-        setError(`An advance invoice already exists for Job ID ${jobId}`);
-        setHasExistingInvoice(true);
+      if (existingId) {
+        setError(`An advance payment already exists for Job ID ${jobId}`);
+        setExistingAdvanceId(existingId);
         return;
       }
       
@@ -165,23 +190,25 @@ const AdvanceInvoice = () => {
       
       setMessage(response.data.message);
       setError('');
-      
-      // Optional: Reset form or redirect after successful creation
-      // setJobId('');
-      // setJobDetails(null);
-      // setAdvanceAmount('');
-      // navigate('/invoices'); // Uncomment if you want to redirect after success
-      
     } catch (err: any) {
       setMessage('');
-      if (err.response?.status === 409) {
-        setError('An advance invoice already exists for this job');
-        setHasExistingInvoice(true);
+      
+      // Check for existing invoice error from backend
+      if (err.response?.status === 400 && err.response?.data?.existingAdvanceId) {
+        setError(err.response.data.message);
+        setExistingAdvanceId(err.response.data.existingAdvanceId);
       } else {
         setError(err.response?.data?.message || 'Error adding advance amount');
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // View existing advance invoice
+  const viewExistingAdvance = () => {
+    if (existingAdvanceId) {
+      navigate(`/view-advance-invoice/${existingAdvanceId}`);
     }
   };
 
@@ -298,13 +325,17 @@ const AdvanceInvoice = () => {
               <h4 className="font-medium text-gray-900 dark:text-gray-100 mt-4 mb-2">Customer Information</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <p className="text-sm text-gray-800 dark:text-gray-200">
-                  <strong>Customer Name:</strong> {jobDetails.customer_name}
+                  <strong>Customer Name:</strong> {
+                    jobDetails.customer_firstName && jobDetails.customer_lastName 
+                      ? `${jobDetails.customer_firstName} ${jobDetails.customer_lastName}`
+                      : jobDetails.customer_name || 'N/A'
+                  }
                 </p>
                 <p className="text-sm text-gray-800 dark:text-gray-200">
-                  <strong>Email:</strong> {jobDetails.email}
+                  <strong>Email:</strong> {jobDetails.customer_email || jobDetails.email || 'N/A'}
                 </p>
                 <p className="text-sm text-gray-800 dark:text-gray-200">
-                  <strong>Phone Numbers:</strong> {jobDetails.phone_numbers}
+                  <strong>Phone Numbers:</strong> {jobDetails.phone_numbers || 'N/A'}
                 </p>
               </div>
             </div>
@@ -331,11 +362,11 @@ const AdvanceInvoice = () => {
               type="text"
               value={advanceAmount}
               onChange={(e) => setAdvanceAmount(e.target.value)}
-              className={`w-full p-2 border ${hasExistingInvoice ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'} rounded-md focus:ring focus:ring-blue-300 dark:bg-gray-700 dark:text-gray-200`}
+              className={`w-full p-2 border ${existingAdvanceId ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'} rounded-md focus:ring focus:ring-blue-300 dark:bg-gray-700 dark:text-gray-200`}
               placeholder="Enter Advance Amount"
-              disabled={!jobDetails || hasExistingInvoice || isLoading}
+              disabled={!jobDetails || !!existingAdvanceId || isLoading}
             />
-            {hasExistingInvoice && (
+            {existingAdvanceId && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">
                 An advance invoice already exists for this job
               </p>
@@ -352,7 +383,7 @@ const AdvanceInvoice = () => {
               setAdvanceAmount('');
               setMessage('');
               setError('');
-              setHasExistingInvoice(false);
+              setExistingAdvanceId(null);
             }}
             className="w-full py-2 px-4 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring focus:ring-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
             disabled={isLoading}
@@ -362,11 +393,11 @@ const AdvanceInvoice = () => {
           <button
             onClick={handleAddAdvance}
             className={`w-full py-2 px-4 ${
-              !jobDetails || hasExistingInvoice || isLoading
+              !jobDetails || !!existingAdvanceId || isLoading
                 ? 'bg-blue-400 cursor-not-allowed'
                 : 'bg-blue-500 hover:bg-blue-600'
             } text-white rounded-md focus:outline-none focus:ring focus:ring-blue-300 dark:bg-blue-700 dark:hover:bg-blue-800 flex justify-center items-center`}
-            disabled={!jobDetails || hasExistingInvoice || isLoading}
+            disabled={!jobDetails || !!existingAdvanceId || isLoading}
           >
             {isLoading ? (
               <>

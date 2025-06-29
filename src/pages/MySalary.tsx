@@ -330,16 +330,12 @@ const MySalary = () => {
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Employee ID</p>
                   <p className="font-medium text-gray-800 dark:text-gray-200">{employee.employeeId || "N/A"}</p>
-                </div>                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Name</p>
-                  <p className="font-medium text-gray-800 dark:text-gray-200">
-                    {employee.name || "N/A"}
-                  </p>
-                </div>
+                </div>                
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Position</p>
                   <p className="font-medium text-gray-800 dark:text-gray-200">{employee.role || "N/A"}</p>
-                </div>                <div>
+                </div>                
+                <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Employment Type</p>
                   <p className="font-medium text-gray-800 dark:text-gray-200">{employee.employmentType || "Full Time"}</p>
                 </div>

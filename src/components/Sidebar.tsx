@@ -84,7 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
   ];
 
   const jobItems = [
-    ...(role === 'owner' ? [{ path: '/register/register-job-customer', icon: <Package size={18} />, label: 'Register Job' }] : []),
+   { path: '/register/register-job-customer', icon: <Package size={18} />, label: 'Register Job' },
     // { path: '/register/register-job-customer', icon: <Wrench size={18} />, label: 'Register Job' },
     { path: '/jobs', icon: <FileCheck size={18} />, label: 'All Jobs' },
     { path: '/myjobs', icon: <CircleDot size={18} />, label: 'My Jobs' },
