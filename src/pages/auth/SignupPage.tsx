@@ -295,32 +295,9 @@ const SignupPage: React.FC = () => {
                         Remove
                       </Button>
                     </li>
-                  ))}
-                </ul>
+                  ))}                </ul>
               </div>
             )}
-            
-            <div className="mb-6">
-              <div className="flex items-start">
-                <input
-                  id="terms"
-                  name="terms"
-                  type="checkbox"
-                  className="h-4 w-4 mt-1 text-primary border-gray-300 rounded focus:ring-primary"
-                  required
-                />
-                <label htmlFor="terms" className="ml-2 block text-sm text-text-secondary">
-                  I agree to the{' '}
-                  <a href="#" className="text-primary hover:text-primary-dark">
-                    Terms of Service
-                  </a>{' '}
-                  and{' '}
-                  <a href="#" className="text-primary hover:text-primary-dark">
-                    Privacy Policy
-                  </a>
-                </label>
-              </div>
-            </div>
             
             <Button
               type="submit"

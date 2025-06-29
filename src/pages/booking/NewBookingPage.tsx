@@ -168,16 +168,15 @@ const NewBookingPage: React.FC = () => {
     
     fetchCustomerProducts();
   }, [user]);
+
   // Handle next step
   const handleNextStep = () => {
-    setError(null); // Clear any previous errors
     setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
     window.scrollTo(0, 0);
   };
 
   // Handle previous step
   const handlePrevStep = () => {
-    setError(null); // Clear any previous errors
     setCurrentStep((prev) => Math.max(prev - 1, 0));
     window.scrollTo(0, 0);
   };
@@ -204,23 +203,9 @@ const NewBookingPage: React.FC = () => {
     updateFormData('commonIssue', issue);
     updateFormData('issueDescription', issue);
   };
+
   // Handle date selection
   const handleDateSelect = (date: string) => {
-    // Clear any previous date validation errors
-    setError(null);
-    
-    // Validate that the selected date is today or in the future
-    if (date) {
-      const selectedDate = new Date(date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Reset time to beginning of day for comparison
-      
-      if (selectedDate < today) {
-        setError('Please select today or a future date');
-        return;
-      }
-    }
-    
     updateFormData('date', date);
     // Reset time when date changes
     updateFormData('time', '');
@@ -262,10 +247,44 @@ const NewBookingPage: React.FC = () => {
     setError(null);
 
     try {
-      // Format the date properly if it's a date object
-      const formattedDate = typeof formData.date === 'string' 
-        ? formData.date 
-        : format(new Date(formData.date), 'EEEE, MMMM d, yyyy');
+      // Ensure date is valid before proceeding
+      if (!formData.date || !formData.date.includes('-')) {
+        setError('Invalid date format. Please select a valid date.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Parse the date parts from the date input (format: YYYY-MM-DD)
+      const [year, month, day] = formData.date.split('-');
+      
+      // Verify all date parts are present and valid
+      if (!year || !month || !day) {
+        console.error('Invalid date parts:', { year, month, day });
+        setError('Invalid date format. Please select a valid date.');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Create a Date object to get the day of week, etc
+      const dateObj = new Date(`${year}-${month}-${day}T12:00:00`);
+      
+      // Additional validation to ensure dateObj is valid
+      if (isNaN(dateObj.getTime())) {
+        console.error('Invalid date object:', dateObj);
+        setError('Invalid date. Please select a valid date.');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Format the date in the expected format for the backend: "Monday, May 6, 2023"
+      // Note: month must be full name (May, not 05) as expected by backend's getMonthNumber function
+      const formattedDate = format(dateObj, 'EEEE, MMMM d, yyyy');
+      
+      // Log the date values for debugging
+      console.log('Original date input:', formData.date);
+      console.log('Date parts - Year:', year, 'Month:', month, 'Day:', day);
+      console.log('Date object:', dateObj.toString());
+      console.log('Formatted date for backend:', formattedDate);
 
       // Create form data for file upload
       const bookingFormData = new FormData();
@@ -273,6 +292,9 @@ const NewBookingPage: React.FC = () => {
       // Add customer ID for the booking
       bookingFormData.append('customerId', user.id.toString());
       
+      // IMPORTANT: Skip sending rawDate to avoid confusion in the backend
+      // The backend expects a specific date format, not the raw YYYY-MM-DD
+    
       // If using an existing product, include its ID instead of creating a new one
       if (selectedProduct) {
         bookingFormData.append('existingProduct', 'true');
@@ -343,6 +365,7 @@ const NewBookingPage: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+
   // Validation for the current step
   const isCurrentStepValid = () => {
     switch (currentStep) {
@@ -352,21 +375,9 @@ const NewBookingPage: React.FC = () => {
         }
         return !!formData.deviceType && !!formData.deviceModel;
       case 1: // Problem Description
-        return !!formData.issueDescription;      case 2: // Schedule Appointment
-        // Check if date is valid (today or future date)
-        if (!formData.date) return false;
-        
-        const selectedDate = new Date(formData.date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Reset time to beginning of day for comparison
-        const isDateValid = selectedDate >= today;
-        
-        if (!isDateValid) {
-          setError('Please select today or a future date');
-          return false;
-        }
-        
-        return isDateValid && !!formData.time;
+        return !!formData.issueDescription;
+      case 2: // Schedule Appointment
+        return !!formData.date && !!formData.time;
       case 3: // Review
         return termsAccepted;
       default:
@@ -504,26 +515,23 @@ const NewBookingPage: React.FC = () => {
       </div>
     );
   };
+
   // Render the schedule step
   const renderScheduleStep = () => {
+    // Get today's date in YYYY-MM-DD format for the min attribute
+    const today = new Date().toISOString().split('T')[0];
+    
     return (
       <div>
         <h3 className="text-lg font-bold text-text mb-4">Schedule Your Appointment</h3>
-        
-        {error && (
-          <div className="bg-error-light text-error p-4 rounded-lg mb-6 flex items-center">
-            <AlertCircle className="mr-2" size={20} />
-            <span>{error}</span>
-          </div>
-        )}
-        
-        <div className="space-y-4">          <Input
+        <div className="space-y-4">
+          <Input
             id="appointment-date"
-            label="Select Date (Today or future dates only)"
+            label="Select Date"
             type="date"
             value={formData.date}
             onChange={(e) => handleDateSelect(e.target.value)}
-            min={new Date().toISOString().split('T')[0]} // Set minimum date to today
+            min={today} // Prevent selecting dates earlier than today
             required
           />
           <Input
@@ -633,8 +641,10 @@ const NewBookingPage: React.FC = () => {
     const deviceTypeName = formData.deviceType === 'other' && formData.customDeviceType
       ? formData.customDeviceType
       : selectedDevice?.name || formData.deviceType;
+    
+    // Parse the date string into a proper Date object for formatting
     const selectedDate = formData.date 
-      ? format(new Date(formData.date), 'EEEE, MMMM d, yyyy')
+      ? format(new Date(formData.date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
       : '';
 
     return (

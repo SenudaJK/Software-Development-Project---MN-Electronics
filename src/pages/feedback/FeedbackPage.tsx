@@ -51,10 +51,10 @@ const FeedbackPage: React.FC = () => {
           
           setFeedbackExists(hasExistingFeedback);
         }
-        
-      } catch (err) {
+          } catch (err) {
         console.error('Error checking feedback existence:', err);
-        setError('Could not verify feedback status.');
+        // Log the error but don't show it to the user - just let them submit feedback again
+        setIsLoading(false);
       } finally {
         setIsLoading(false);
       }
